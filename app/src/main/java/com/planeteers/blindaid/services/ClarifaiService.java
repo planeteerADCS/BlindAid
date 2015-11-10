@@ -35,7 +35,7 @@ public class ClarifaiService extends IntentService {
 
             ArrayList<String> tags = new ArrayList<>();
             for (Tag tag : results.get(0).getTags()) {
-                tags.add(tag.getName() + ": " + tag.getProbability());
+                tags.add(tag.getName() + ":" + tag.getProbability());
             }
 
             sendDataToReceivers(tags);

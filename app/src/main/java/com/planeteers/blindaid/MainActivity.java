@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.support.annotation.NonNull;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -29,7 +30,9 @@ import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.services.ClarifaiService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -58,7 +61,16 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
-            // Whatever we need to do to the tag results
+            ArrayList<String> tagNames = new ArrayList<>();
+            ArrayList<Double> tagProbs = new ArrayList<>();
+
+            for (String tag : tags) {
+                String[] tagParts = tag.split(":");
+                tagNames.add(tagParts[0]);
+                tagProbs.add(Double.parseDouble(tagParts[1]));
+            }
+
+            talkBack(tagNames, tagProbs);
         }
     };
 
@@ -68,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
                 new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+
         ButterKnife.bind(this);
     }
 
@@ -85,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         super.onResume();
     }
-git statu
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -94,7 +107,7 @@ git statu
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
+        // Inflate the menu; L<this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
@@ -129,26 +142,19 @@ git statu
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
-                //todo launch background thread with clarifai request
-                /**
-                 * sample response
-                 * for (Tag tag : results.get(0).getTags()) {
-                 *     System.out.println(tag.getName() + ": " + tag.getProbability());
-                 * }
-                 */
-                String[] tagNames = new String[] {
-                        "keyboard", "happy", "horatio"
-                };
-                double[] tagProbs = new double[] {
-                      0.8, 0.6, 0.5
-                };
-
-                talkBack(tagNames, tagProbs);
+                this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION));
             }
         }
     }
 
-    private void talkBack(String[] tagNames, double[] tagProbs) {
-        
+    private void talkBack(List<String> tagNames, List<Double> tagProbs) {
+        //TODO: Implement
+    }
+
+    @NonNull
+    private Intent getServiceIntent(String Action) {
+        Intent serviceIntent = new Intent(this, ClarifaiService.class);
+        serviceIntent.setAction(Action);
+        return serviceIntent;
     }
 }
