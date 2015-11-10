@@ -181,7 +181,18 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 						);
 
 				parameters.setPictureSize(optimalSize.width, optimalSize.height);
-				mCamera.setParameters(parameters);
+				try {
+					mCamera.setParameters(parameters);
+				}catch (Exception e){
+					Timber.e(e, e.getMessage());
+
+					parameters = mCamera.getParameters();
+					Size s = getBestSupportedSize(parameters.getSupportedPreviewSizes(), width, height);
+					parameters.setPreviewSize(s.width, s.height);
+					s = getBestSupportedSize(parameters.getSupportedPictureSizes(), width, height);
+					parameters.setPictureSize(s.width, s.height);
+					mCamera.setParameters(parameters);
+				}
 				mCamera.setDisplayOrientation(90);
 				try {
 					mCamera.startPreview();
