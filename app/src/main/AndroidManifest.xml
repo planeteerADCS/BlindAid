@@ -35,6 +35,8 @@
         <activity android:name=".camera.CameraActivity"
             android:screenOrientation="portrait"/>
 
+        <activity android:name=".obstacle.ObstacleDetection"/>
+
         <service
             android:name=".services.ClarifaiService"
             android:exported="false" >
