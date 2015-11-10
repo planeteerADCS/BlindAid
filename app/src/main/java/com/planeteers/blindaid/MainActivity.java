@@ -1,10 +1,13 @@
 package com.planeteers.blindaid;
 
+import android.annotation.TargetApi;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -21,6 +24,7 @@ import java.io.File;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
@@ -31,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     Button faceDetectButton;
     @Bind(R.id.previewImage)
     ImageView mPreviewImage;
+    private TextToSpeech mTts;
 
     @OnClick(R.id.cameraFeedButton)
     public void onCameraButtonClicked(View v) {
@@ -113,7 +118,22 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void talkBack(String[] tagNames, double[] tagProbs) {
-        
+    private void talkBack(final String[] tagNames, final double[] tagProbs) {
+        mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.ERROR) {
+                    Timber.e("error", TextToSpeech.ERROR);
+                    return;
+                } else {
+                    String speakString = "";
+                    for (int i = 0; i < tagNames.length; i++) {
+                        speakString += "In view " + tagNames[i] + " Certainty " + tagProbs[i] + ". ";
+                    }
+                    mTts.speak(speakString, 0, null, null);
+                }
+            }
+        });
     }
 }
