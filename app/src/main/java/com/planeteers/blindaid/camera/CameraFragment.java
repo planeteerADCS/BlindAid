@@ -35,7 +35,7 @@ public class CameraFragment extends Fragment {
 	public static final String EXTRA_PHOTO_ORIENTATION =
 			"photo_orientation";
 	private OrientationEventListener mOrientationEventListener;
-	private int mOrientation = 0;
+	private int mOrientation = 1;
 	private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
 		@Override
 		public void onShutter() {
@@ -126,6 +126,7 @@ public class CameraFragment extends Fragment {
 				parameters.setPreviewSize(s.width, s.height);
 				s = getBestSupportedSize(parameters.getSupportedPictureSizes(), width, height);
 				parameters.setPictureSize(s.width, s.height);
+				mCamera.setDisplayOrientation(90);
 				mCamera.setParameters(parameters);
 				try {
 					mCamera.startPreview();
