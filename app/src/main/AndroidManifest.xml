@@ -32,7 +32,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".camera.CameraActivity" />
+        <activity android:name=".camera.CameraActivity"
+            android:screenOrientation="portrait"/>
 
         <service
             android:name=".services.ClarifaiService"
