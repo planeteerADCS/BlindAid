@@ -30,6 +30,7 @@ public class TalkActivity extends AppCompatActivity{
 
     private TagsRetrievedListener tagsRetrievedListener;
 
+    // parse the string into tags and certainty factors
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -104,6 +105,7 @@ public class TalkActivity extends AppCompatActivity{
         return serviceIntent;
     }
 
+    // say it out loud
     public void talkBack(String message) {
         if(textToSpeechReady) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
