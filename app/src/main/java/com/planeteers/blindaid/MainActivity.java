@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -96,7 +95,25 @@ public class MainActivity extends AppCompatActivity {
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
                 //todo launch background thread with clarifai request
+                /**
+                 * sample response
+                 * for (Tag tag : results.get(0).getTags()) {
+                 *     System.out.println(tag.getName() + ": " + tag.getProbability());
+                 * }
+                 */
+                String[] tagNames = new String[] {
+                        "keyboard", "happy", "horatio"
+                };
+                double[] tagProbs = new double[] {
+                      0.8, 0.6, 0.5
+                };
+
+                talkBack(tagNames, tagProbs);
             }
         }
+    }
+
+    private void talkBack(String[] tagNames, double[] tagProbs) {
+        
     }
 }
