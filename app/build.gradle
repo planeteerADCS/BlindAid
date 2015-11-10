@@ -30,5 +30,6 @@ dependencies {
     compile 'com.google.android.gms:play-services-vision:8.1.0'
     compile 'com.clarifai:clarifai-api-java:1.2.0'
     compile 'com.android.support:support-v13:23.1.0'
+    compile project(':openCVLibrary300')
     compile 'com.android.support:design:23.1.0'
 }
