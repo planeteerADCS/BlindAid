@@ -1,9 +1,15 @@
 package com.planeteers.blindaid;
 
+
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -21,6 +27,10 @@ import java.io.File;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+
+import com.planeteers.blindaid.helpers.Constants;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
@@ -44,11 +54,36 @@ public class MainActivity extends AppCompatActivity {
 //        startService(i);
     }
 
+    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
+            // Whatever we need to do to the tag results
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         ButterKnife.bind(this);
+    }
+
+    @Override
+    public void onPause() {
+        // Unregister since the activity is not visible
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
+        super.onPause();
+    }
+
+    @Override
+    public void onResume() {
+        // Reregister since the activity is visible
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+        super.onResume();
     }
 
     @Override
