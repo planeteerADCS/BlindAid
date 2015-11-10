@@ -1,34 +1,53 @@
 package com.planeteers.blindaid;
 
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 
 import com.planeteers.blindaid.camera.CameraActivity;
+import com.planeteers.blindaid.camera.CameraFragment;
+
+import java.io.File;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
+    public final static int REQUEST_CODE_CAMERA = 134;
+
     @Bind(R.id.cameraFeedButton)
     Button cameraFeedButton;
+    @Bind(R.id.faceDetectButton)
+    Button faceDetectButton;
+    @Bind(R.id.previewImage)
+    ImageView mPreviewImage;
 
     @OnClick(R.id.cameraFeedButton)
-    public void onCameraButtonClicked(View v){
+    public void onCameraButtonClicked(View v) {
         Intent i = new Intent(this, CameraActivity.class);
-        startActivity(i);
+        startActivityForResult(i, REQUEST_CODE_CAMERA);
+    }
+
+    @OnClick(R.id.faceDetectButton)
+    public void onFaceDetectButtonClicked(View v) {
+//        Intent i = new Intent(this, FaceDetectActivity.class);
+//        startService(i);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         ButterKnife.bind(this);
     }
 
@@ -58,5 +77,43 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_CAMERA) {
+            if (resultCode == RESULT_OK) {
+                String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
+                Log.d("Camera", "wrote file to: " + path);
+
+                File image = new File(getFilesDir() + "/" + path);
+                BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+                Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
+
+                BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
+                mPreviewImage.setImageDrawable(bitmapDrawable);
+
+                //todo launch background thread with clarifai request
+                /**
+                 * sample response
+                 * for (Tag tag : results.get(0).getTags()) {
+                 *     System.out.println(tag.getName() + ": " + tag.getProbability());
+                 * }
+                 */
+                String[] tagNames = new String[] {
+                        "keyboard", "happy", "horatio"
+                };
+                double[] tagProbs = new double[] {
+                      0.8, 0.6, 0.5
+                };
+
+                talkBack(tagNames, tagProbs);
+            }
+        }
+    }
+
+    private void talkBack(String[] tagNames, double[] tagProbs) {
+        
     }
 }
