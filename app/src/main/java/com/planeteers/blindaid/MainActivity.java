@@ -1,16 +1,35 @@
 package com.planeteers.blindaid;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.planeteers.blindaid.helpers.Constants;
+
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
+
+    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
+            // Whatever we need to do to the tag results
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
+                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
     }
 
     @Override
