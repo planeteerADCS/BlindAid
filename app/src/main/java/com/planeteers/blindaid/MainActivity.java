@@ -1,17 +1,18 @@
 package com.planeteers.blindaid;
 
-
-import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
+import android.annotation.TargetApi;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.support.annotation.NonNull;
-import android.support.v4.content.LocalBroadcastManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -22,18 +23,18 @@ import android.widget.ImageView;
 
 import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
+import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
-
-import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
-
-import java.util.ArrayList;
-import java.util.List;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
@@ -44,19 +45,7 @@ public class MainActivity extends AppCompatActivity {
     Button faceDetectButton;
     @Bind(R.id.previewImage)
     ImageView mPreviewImage;
-
-    @OnClick(R.id.cameraFeedButton)
-    public void onCameraButtonClicked(View v) {
-        Intent i = new Intent(this, CameraActivity.class);
-        startActivityForResult(i, REQUEST_CODE_CAMERA);
-    }
-
-    @OnClick(R.id.faceDetectButton)
-    public void onFaceDetectButtonClicked(View v) {
-//        Intent i = new Intent(this, FaceDetectActivity.class);
-//        startService(i);
-    }
-
+    private TextToSpeech mTts;
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -73,6 +62,18 @@ public class MainActivity extends AppCompatActivity {
             talkBack(tagNames, tagProbs);
         }
     };
+
+    @OnClick(R.id.cameraFeedButton)
+    public void onCameraButtonClicked(View v) {
+        Intent i = new Intent(this, CameraActivity.class);
+        startActivityForResult(i, REQUEST_CODE_CAMERA);
+    }
+
+    @OnClick(R.id.faceDetectButton)
+    public void onFaceDetectButtonClicked(View v) {
+//        Intent i = new Intent(this, FaceDetectActivity.class);
+//        startService(i);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,28 +134,44 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == REQUEST_CODE_CAMERA) {
             if (resultCode == RESULT_OK) {
                 String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
+                String fullPath = getFilesDir() + "/" + path;
                 Log.d("Camera", "wrote file to: " + path);
 
-                File image = new File(getFilesDir() + "/" + path);
+                File image = new File(fullPath);
                 BitmapFactory.Options bmOptions = new BitmapFactory.Options();
                 Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
 
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
-                this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION));
+                this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
+                        Uri.parse(fullPath)
+                ));
             }
         }
     }
 
-    private void talkBack(List<String> tagNames, List<Double> tagProbs) {
-        //TODO: Implement
+    private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
+        mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+            @Override
+            public void onInit(int status) {
+                if (status == TextToSpeech.ERROR) {
+                    Timber.e("error", TextToSpeech.ERROR);
+                } else {
+                    String speakString = "";
+                    for (int i = 0; i < tagNames.size(); i++) {
+                        speakString += "In view " + tagNames.get(i) + " Certainty " + tagProbs.get(i) + ". ";
+                    }
+                    mTts.speak(speakString, 0, null, null);
+                }
+            }
+        });
     }
 
-    @NonNull
-    private Intent getServiceIntent(String Action) {
+    private Intent getServiceIntent(String action) {
         Intent serviceIntent = new Intent(this, ClarifaiService.class);
-        serviceIntent.setAction(Action);
+        serviceIntent.setAction(action);
         return serviceIntent;
     }
 }

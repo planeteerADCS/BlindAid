@@ -17,7 +17,8 @@
             android:id="@+id/camera_takePictureButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TAKE"/>
+            android:text="@string/take_button"
+            android:contentDescription="@string/take_picture_button_content_description"/>
     </LinearLayout>        
     
     <FrameLayout

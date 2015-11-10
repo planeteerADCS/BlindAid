@@ -28,10 +28,9 @@ public class ClarifaiService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
 
-            URI imageUri = URI.create(intent.getData().toString());
             ClarifaiClient clarifai = new ClarifaiClient(APP_ID, APP_SECRET);
             List<RecognitionResult> results =
-                    clarifai.recognize(new RecognitionRequest(new File(imageUri)));
+                    clarifai.recognize(new RecognitionRequest(new File(intent.getData().toString())));
 
             ArrayList<String> tags = new ArrayList<>();
             for (Tag tag : results.get(0).getTags()) {

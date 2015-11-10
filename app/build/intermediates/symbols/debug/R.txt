@@ -688,6 +688,8 @@ int string common_signin_button_text 0x7f060036
 int string common_signin_button_text_long 0x7f060037
 int string hello_world 0x7f060038
 int string status_bar_notification_info_overflow 0x7f060031
+int string take_button 0x7f060039
+int string take_picture_button_content_description 0x7f06003a
 int style AlertDialog_AppCompat 0x7f09007d
 int style AlertDialog_AppCompat_Light 0x7f09007e
 int style Animation_AppCompat_Dialog 0x7f09007f
