@@ -20,7 +20,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.parse.GetCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
 import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
 import com.planeteers.blindaid.gallery.GalleryActivity;
@@ -29,8 +36,8 @@ import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
 import com.planeteers.blindaid.services.ClarifaiService;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +59,9 @@ public class MainActivity extends AppCompatActivity {
     @Bind(R.id.previewImage)
     ImageView mPreviewImage;
     private TextToSpeech mTts;
+
+    Context mContext;
+
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -99,6 +109,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
                 new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+
+        mContext = this;
 
         ButterKnife.bind(this);
     }
@@ -162,6 +174,36 @@ public class MainActivity extends AppCompatActivity {
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
+                final ParseObject imageParseObject = new ParseObject("Image");
+
+
+
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                byte[] imageData = stream.toByteArray();
+                ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
+
+                imageParseObject.put("image", imageParseFile);
+                imageParseObject.saveInBackground(new SaveCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        String imageObjectId = imageParseObject.getObjectId();
+                        Log.v("imageObjectID", imageObjectId);
+                        ParseQuery query = ParseQuery.getQuery("Image");
+
+                        query.getInBackground(imageObjectId, new GetCallback<ParseObject>() {
+                            @Override
+                            public void done(ParseObject parseObject, ParseException e) {
+                                String imageUrl = parseObject.getParseFile("image").getUrl();
+                                Log.v("image url:", imageUrl);
+                            }
+                        });
+
+
+                    }
+                });
+
+
                 this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
                         Uri.parse(fullPath)
                 ));
@@ -201,4 +243,6 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.setAction(action);
         return serviceIntent;
     }
+
+
 }

@@ -30,4 +30,7 @@ dependencies {
     compile project(':openCVLibrary300')
     compile 'com.android.support:design:23.1.0'
     compile 'com.github.bumptech.glide:glide:3.6.1'
+    //parse libraries
+    compile fileTree(dir: 'libs', include: 'Parse-*.jar')
+    compile 'com.parse.bolts:bolts-android:1.2.1'
 }
