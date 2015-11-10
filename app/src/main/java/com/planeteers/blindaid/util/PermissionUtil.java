@@ -28,7 +28,7 @@ public class PermissionUtil {
 
         public static boolean checkPermissionIfNotAsk(final Fragment fragment, String permission) {
 
-            if(!(fragment instanceof FragmentCompat.OnRequestPermissionsResultCallback)) {
+            if(fragment instanceof FragmentCompat.OnRequestPermissionsResultCallback) {
                 if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(fragment.getContext(), permission) != PackageManager.PERMISSION_GRANTED){
                     // Should we show an explanation?
                     if (fragment.shouldShowRequestPermissionRationale(
@@ -56,7 +56,7 @@ public class PermissionUtil {
 
                 return true;
             }else{
-                throw new ClassCastException("Activity does not implement OnRequestPermissionResultCallback");
+                throw new ClassCastException("Fragment does not implement OnRequestPermissionResultCallback");
             }
         }
     }
