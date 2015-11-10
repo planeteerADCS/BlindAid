@@ -7,7 +7,7 @@ import android.view.WindowManager;
 
 public class CameraActivity extends SingleFragmentActivity {
 
-	// adb shell am start -n com.bignerdranch.android.criminalintent/.CrimeCameraActivity
+	// adb shell am start -n com.bignerdranch.android.criminalintent/.CameraActivity
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
