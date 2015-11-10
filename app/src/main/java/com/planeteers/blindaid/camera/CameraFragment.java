@@ -25,6 +25,8 @@ import android.widget.Button;
 
 import com.planeteers.blindaid.R;
 
+import timber.log.Timber;
+
 public class CameraFragment extends Fragment {
 	private static final String TAG = "CameraFragment";
 	private Camera mCamera;
@@ -42,6 +44,9 @@ public class CameraFragment extends Fragment {
 			mProgressContainer.setVisibility(View.VISIBLE);
 		}
 	};
+
+	private static int cameraId = 0;
+
 	private Camera.PictureCallback mJpegCallback = new Camera.PictureCallback() {
 		@Override
 		public void onPictureTaken(byte[] data, Camera camera) {
@@ -146,6 +151,34 @@ public class CameraFragment extends Fragment {
 		
 		return v;
 	}
+
+	/** A safe way to get an instance of the Camera object. */
+	public static Camera getCameraInstance(){
+		Camera c = null;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+			int backFacingCameraId = findBackFacingCameraId();
+			Timber.d("Camera Id: %d", backFacingCameraId);
+			c = Camera.open(backFacingCameraId);
+		} else {
+			c = Camera.open();
+		}
+		return c; // returns null if camera is unavailable
+	}
+
+	private static int findBackFacingCameraId() {
+
+		// Search for the front facing camera
+		int numberOfCameras = Camera.getNumberOfCameras();
+		for (int i = 0; i < numberOfCameras; i++) {
+			Camera.CameraInfo info = new Camera.CameraInfo();
+			Camera.getCameraInfo(i, info);
+			if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
+				cameraId = i;
+				break;
+			}
+		}
+		return cameraId;
+	}
 	
 	private Size getBestSupportedSize(List<Size> sizes, int width, int height) {
 		Size bestSize = sizes.get(0);
@@ -166,11 +199,7 @@ public class CameraFragment extends Fragment {
 	public void onResume() {
 		super.onResume();
 		mOrientationEventListener.enable();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-			mCamera = Camera.open(0);
-		} else {
-			mCamera = Camera.open();
-		}
+		mCamera = getCameraInstance();
 	}
 	
 	@Override
