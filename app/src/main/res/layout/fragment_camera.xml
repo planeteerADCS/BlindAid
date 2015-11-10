@@ -8,20 +8,20 @@
         android:layout_height="match_parent" >
         
         <SurfaceView
-            android:id="@+id/crime_camera_surfaceView"
+            android:id="@+id/camera_surfaceView"
             android:layout_weight="1"
             android:layout_width="0dp"
             android:layout_height="match_parent" />
         
         <Button 
-            android:id="@+id/crime_camera_takePictureButton"
+            android:id="@+id/camera_takePictureButton"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:text="TAKE"/>
     </LinearLayout>        
     
     <FrameLayout
-        android:id="@+id/crime_camera_progressContainer"
+        android:id="@+id/camera_progressContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clickable="true">
