@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     Context mContext;
 
+    // tags & probability returned from Clarifai API
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -75,28 +76,33 @@ public class MainActivity extends AppCompatActivity {
                 tagProbs.add(Double.parseDouble(tagParts[1]));
             }
 
+            // now say tags and certainty factor out loud
             talkBack(tagNames, tagProbs);
         }
     };
 
+    // launch camera
     @OnClick(R.id.cameraFeedButton)
     public void onCameraButtonClicked(View v) {
         Intent i = new Intent(this, CameraActivity.class);
         startActivityForResult(i, REQUEST_CODE_CAMERA);
     }
 
+    //
     @OnClick(R.id.faceDetectButton)
     public void onFaceDetectButtonClicked(View v) {
         Intent i = new Intent(this, FaceDetectActivity.class);
         startActivity(i);
     }
 
+    //
     @OnClick(R.id.openCvButton)
     public void onOpenCvButtonClicked(View v) {
         Intent i = new Intent(this, ObstacleDetection.class);
         startActivity(i);
     }
 
+    //
     @OnClick(R.id.galleryButton)
     public void onGalleryButtonClicked(View v){
         Intent i = new Intent(this, GalleryActivity.class);
@@ -137,30 +143,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; L<this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        // show and save image taken from camera
         if (requestCode == REQUEST_CODE_CAMERA) {
             if (resultCode == RESULT_OK) {
                 String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
@@ -171,18 +157,19 @@ public class MainActivity extends AppCompatActivity {
                 BitmapFactory.Options bmOptions = new BitmapFactory.Options();
                 Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
 
+                // display image taken
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
+                // compress image
                 final ParseObject imageParseObject = new ParseObject("Image");
-
-
 
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                 byte[] imageData = stream.toByteArray();
                 ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
 
+                // save compressed image to filesystem
                 imageParseObject.put("image", imageParseFile);
                 imageParseObject.saveInBackground(new SaveCallback() {
                     @Override
@@ -198,11 +185,8 @@ public class MainActivity extends AppCompatActivity {
                                 Log.v("image url:", imageUrl);
                             }
                         });
-
-
                     }
                 });
-
 
                 this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
                         Uri.parse(fullPath)
@@ -211,6 +195,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+    // TalkBack to announce tag and certainty factor (percentage)
     private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
         mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -235,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
         defaultFormat.setMaximumFractionDigits(0);
 
         return  defaultFormat.format(percent);
-
     }
 
     private Intent getServiceIntent(String action) {
@@ -243,6 +228,5 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.setAction(action);
         return serviceIntent;
     }
-
 
 }
