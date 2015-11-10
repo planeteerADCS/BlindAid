@@ -16,9 +16,6 @@ import java.util.List;
 
 public class ClarifaiService extends IntentService {
 
-    private static final String APP_ID = "nOVRTkdFjshLLibO-vu5IxHi-vb0NU-u9jVxQLZ7";
-    private static final String APP_SECRET = "eJeVpqilheUoEkow61tyZoW1HOihVbw1TjhXJlFa";
-
     public ClarifaiService() {
         super("ClarifaiService");
     }
@@ -27,7 +24,7 @@ public class ClarifaiService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
 
-            ClarifaiClient clarifai = new ClarifaiClient(APP_ID, APP_SECRET);
+            ClarifaiClient clarifai = new ClarifaiClient(Constants.CLARIFAI.APP_ID, Constants.CLARIFAI.APP_SECRET);
             List<RecognitionResult> results =
                     clarifai.recognize(new RecognitionRequest(new File(intent.getData().toString())));
 
