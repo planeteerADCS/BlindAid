@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         super.onResume();
     }
-
+git statu
     @Override
     protected void onDestroy() {
         super.onDestroy();
