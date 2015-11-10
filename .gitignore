@@ -8,3 +8,6 @@
 /build
 /captures
 /app/build
+BlindAid.iml
+/openCVLibrary300/build/
+/openCVLibrary300/openCVLibrary300.iml
