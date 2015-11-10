@@ -19,5 +19,4 @@ public class CameraActivity extends SingleFragmentActivity {
 	protected Fragment createFragment() {
 		return new CameraFragment();
 	}
-
 }
