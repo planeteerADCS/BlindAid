@@ -28,6 +28,7 @@ import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.io.File;
 import java.net.URL;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -161,12 +162,21 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     String speakString = "";
                     for (int i = 0; i < tagNames.size(); i++) {
-                        speakString += "In view " + tagNames.get(i) + " Certainty " + tagProbs.get(i) + ". ";
+                        if (i < 10)speakString += "In view " + tagNames.get(i) + " Certainty " + toPercentage(tagProbs.get(i)) + ". ";
                     }
                     mTts.speak(speakString, 0, null, null);
                 }
             }
         });
+    }
+
+    private String toPercentage(double number) {
+        float percent = (float) number;
+        NumberFormat defaultFormat = NumberFormat.getPercentInstance();
+        defaultFormat.setMaximumFractionDigits(0);
+
+        return  defaultFormat.format(percent);
+
     }
 
     private Intent getServiceIntent(String action) {
