@@ -23,6 +23,7 @@ import android.widget.ImageView;
 
 import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
+import com.planeteers.blindaid.gallery.GalleryActivity;
 import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
@@ -83,6 +84,12 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.openCvButton)
     public void onOpenCvButtonClicked(View v) {
         Intent i = new Intent(this, ObstacleDetection.class);
+        startActivity(i);
+    }
+
+    @OnClick(R.id.galleryButton)
+    public void onGalleryButtonClicked(View v){
+        Intent i = new Intent(this, GalleryActivity.class);
         startActivity(i);
     }
 

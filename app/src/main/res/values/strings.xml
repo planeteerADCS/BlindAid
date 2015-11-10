@@ -6,4 +6,8 @@
     <string name="take_button">TAKE</string>
     <string name="take_picture_button_content_description">Take a picture button</string>
     <string name="title_activity_recognition">RecognitionActivity</string>
+
+    <string name="title_activity_gallery">GalleryActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>
