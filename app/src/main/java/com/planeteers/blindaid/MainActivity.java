@@ -25,6 +25,7 @@ import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
 import com.planeteers.blindaid.gallery.GalleryActivity;
 import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
 import com.planeteers.blindaid.services.ClarifaiService;
 
@@ -76,6 +77,12 @@ public class MainActivity extends AppCompatActivity {
     @OnClick(R.id.faceDetectButton)
     public void onFaceDetectButtonClicked(View v) {
         Intent i = new Intent(this, FaceDetectActivity.class);
+        startActivity(i);
+    }
+
+    @OnClick(R.id.openCvButton)
+    public void onOpenCvButtonClicked(View v) {
+        Intent i = new Intent(this, ObstacleDetection.class);
         startActivity(i);
     }
 
