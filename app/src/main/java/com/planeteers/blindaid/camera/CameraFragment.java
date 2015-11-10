@@ -80,12 +80,12 @@ public class CameraFragment extends Fragment {
 	@SuppressWarnings("deprecation")
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
-		View v = inflater.inflate(R.layout.fragment_crime_camera, parent, false);
+		View v = inflater.inflate(R.layout.fragment_camera, parent, false);
 		
-		mProgressContainer = v.findViewById(R.id.crime_camera_progressContainer);
+		mProgressContainer = v.findViewById(R.id.camera_progressContainer);
 		mProgressContainer.setVisibility(View.INVISIBLE);
 		
-		Button takePictureButton = (Button) v.findViewById(R.id.crime_camera_takePictureButton);
+		Button takePictureButton = (Button) v.findViewById(R.id.camera_takePictureButton);
 		takePictureButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -95,7 +95,7 @@ public class CameraFragment extends Fragment {
 			}
 		});
 		
-		mSurfaceView = (SurfaceView) v.findViewById(R.id.crime_camera_surfaceView);
+		mSurfaceView = (SurfaceView) v.findViewById(R.id.camera_surfaceView);
 		SurfaceHolder holder = mSurfaceView.getHolder();
 		holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 		holder.addCallback(new SurfaceHolder.Callback() {
