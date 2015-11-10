@@ -30,8 +30,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".camera.CameraActivity" />
 
-        <activity android:name=".camera.CameraActivity"/>
+        <service
+            android:name=".services.ClarifaiService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>

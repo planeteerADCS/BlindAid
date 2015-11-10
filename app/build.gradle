@@ -25,4 +25,5 @@ dependencies {
     compile 'com.jakewharton:butterknife:7.0.1'
     compile 'com.jakewharton.timber:timber:4.1.0'
     compile 'com.google.android.gms:play-services-vision:8.1.0'
+    compile 'com.clarifai:clarifai-api-java:1.2.0'
 }
