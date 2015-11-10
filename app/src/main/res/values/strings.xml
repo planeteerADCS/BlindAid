@@ -5,4 +5,5 @@
     <string name="action_settings">Settings</string>
     <string name="take_button">TAKE</string>
     <string name="take_picture_button_content_description">Take a picture button</string>
+    <string name="title_activity_recognition">RecognitionActivity</string>
 </resources>
