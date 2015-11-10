@@ -29,7 +29,6 @@ import com.planeteers.blindaid.recognition.FaceDetectActivity;
 import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.io.File;
-import java.net.URL;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
+            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
             ArrayList<String> tagNames = new ArrayList<>();
             ArrayList<Double> tagProbs = new ArrayList<>();
 

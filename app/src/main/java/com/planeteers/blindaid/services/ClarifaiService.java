@@ -11,7 +11,6 @@ import com.clarifai.api.Tag;
 import com.planeteers.blindaid.helpers.Constants;
 
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +43,7 @@ public class ClarifaiService extends IntentService {
 
     private void sendDataToReceivers(ArrayList<String> tags) {
         Intent intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
-        intent.putStringArrayListExtra(Constants.KEY.TAG_LIST_KEY, tags);
+        intent.putStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY, tags);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }

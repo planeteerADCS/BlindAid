@@ -11,6 +11,7 @@ public class Constants {
     }
 
     public interface KEY {
-        String TAG_LIST_KEY = "tag_list_key";
+        String CLARIFAI_TAG_LIST_KEY = "clarifai_tag_list_key";
+        String IMAGGA_TAG_LIST_KEY = "imagga_tag_list_key";
     }
 }

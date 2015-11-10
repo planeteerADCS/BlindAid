@@ -1,6 +1,5 @@
 package com.planeteers.blindaid.base;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -33,7 +32,7 @@ public class TalkActivity extends AppCompatActivity{
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
+            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
             ArrayList<String> tagNames = new ArrayList<>();
             ArrayList<Double> tagProbs = new ArrayList<>();
 
