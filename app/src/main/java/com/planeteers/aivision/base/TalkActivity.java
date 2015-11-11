@@ -47,15 +47,15 @@ public class TalkActivity extends AppCompatActivity{
             }
         });
 
-
-
-
     }
 
     @Override
     public void onPause() {
         // Unregister since the activity is not visible
         super.onPause();
+        if(mTts != null){
+            mTts.stop();
+        }
     }
 
     @Override

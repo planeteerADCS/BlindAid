@@ -1,16 +1,20 @@
 package com.planeteers.aivision.obstacle;
 
 import android.app.Activity;
+import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Vibrator;
-import android.util.Log;
+import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
+import android.widget.TextView;
 
 import com.planeteers.aivision.R;
 import com.planeteers.aivision.base.TalkActivity;
+import com.planeteers.aivision.view.BlindViewUtil;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -27,6 +31,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import timber.log.Timber;
+
 /**
  * Created by flavius on 11/10/15.
  */
@@ -41,6 +49,8 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
     private static final int TONE_HIGH = 8;
     private static final int TONE_HIGHER = 6;
     private static final int MIN_ROTATE_DOWN_MESSAGE_DELAY = 3000;
+
+    public final static String INSTRUCTIONS = "Swipe down to go back.";
 
 
     private JavaCameraView mCameraView;
@@ -63,7 +73,7 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
         public void onManagerConnected(int status) {
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS: {
-                    Log.i(TAG, "OpenCV loaded successfully");
+                    Timber.i("OpenCV loaded successfully");
                     mCameraView.enableView();
                     mCameraView.setCvCameraViewListener(ObstacleDetection.this);
                 }
@@ -78,10 +88,16 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
     private int mDelay;
     private long mLastRotateDownMessage;
 
+    @Bind(R.id.tag_textview)
+    TextView tagTextView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_obstacle);
+
+        ButterKnife.bind(this);
+
         mCameraView = (JavaCameraView) findViewById(R.id.HelloOpenCvView);
         mVibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
 
@@ -89,6 +105,55 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
                 getWindow().getWindowManager());
 
         mToneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
+
+
+        //UI stuff
+        Typeface typeface = Typeface.createFromAsset(getAssets(), "fonts/robotoslab_light.ttf");
+        tagTextView.setTypeface(typeface);
+
+        String htmlInstructions = INSTRUCTIONS.replace(".", ".<br/> <br/>");
+        tagTextView.setText(Html.fromHtml(htmlInstructions));
+
+        tagTextView.setContentDescription(INSTRUCTIONS);
+
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
+        BlindViewUtil util = new BlindViewUtil(new BlindViewUtil.BlindNavGestureListener() {
+            @Override
+            public boolean onSwipeLeft() {
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeRight() {
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeUp() {
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeDown() {
+                Timber.d("OnSwipeDown Called");
+                finish();
+                return true;
+            }
+
+            @Override
+            public boolean onClick() {
+                return false;
+            }
+        });
+
+        mCameraView.setOnTouchListener(util.blindTouchListener);
+
+        talkBack(INSTRUCTIONS);
     }
 
     @Override
@@ -181,13 +246,13 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
         if (maxArea > 70000) {
             mVibrator.vibrate(200);
         }
-        Log.d("Area", "" + maxArea);
+        Timber.d("Area", "" + maxArea);
         return mMat;
     }
 
     @Override
     public void onOrientationChanged(float pitch, float roll) {
-        Log.d("Orient", "pitch: " + pitch + "   roll: " + roll);
+        Timber.d("Orient", "pitch: " + pitch + "   roll: " + roll);
         final long now = System.currentTimeMillis();
 
         if (now - mLastTimestamp > mDelay) {
@@ -200,7 +265,7 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
             } else {
                 tone = TONE_NORMAL;
                 mDelay = (int)Math.abs(pitch) * 15;
-                Log.d("Delay", "" + mDelay);
+                Timber.d("Delay", "" + mDelay);
                 mDelay = Math.max(DELAY_FASTEST, mDelay);
             }
 

@@ -34,9 +34,10 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.planeteers.aivision.obstacle.ObstacleDetection"
-            android:screenOrientation="portrait"/>
 
+        <activity android:name=".obstacle.ObstacleDetection"
+            android:screenOrientation="portrait"
+            android:theme="@style/FullScreenTheme"/>
 
         <activity
             android:name="com.planeteers.aivision.gallery.GalleryActivity"
