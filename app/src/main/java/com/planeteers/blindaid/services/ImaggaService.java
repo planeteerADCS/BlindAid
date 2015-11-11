@@ -8,7 +8,7 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.models.Imagga;
+import com.planeteers.blindaid.models.PictureTag;
 import com.planeteers.blindaid.util.LoggingInterceptor;
 import com.squareup.okhttp.OkHttpClient;
 
@@ -40,7 +40,7 @@ public class ImaggaService extends IntentService {
         if (intent != null) {
 
             Gson gson = new GsonBuilder()
-                    .registerTypeAdapter(List.class, new Imagga.ImaggaDeserializer())
+                    .registerTypeAdapter(List.class, new PictureTag.ImaggaDeserializer())
                     .create();
 
             String imageUrl = intent.getData().toString();
@@ -55,16 +55,16 @@ public class ImaggaService extends IntentService {
 
             ImaggaApi imagga = retrofit.create(ImaggaApi.class);
 
-            Call<List<Imagga>> call = null;
+            Call<List<PictureTag>> call = null;
             call = imagga.getTags(imageUrl, Constants.IMAGGA.AUTHORIZATION);
 
-            call.enqueue(new Callback<List<Imagga>>() {
+            call.enqueue(new Callback<List<PictureTag>>() {
                 @Override
-                public void onResponse(Response<List<Imagga>> response, Retrofit retrofit) {
-                    List<Imagga> imageTags = response.body();
+                public void onResponse(Response<List<PictureTag>> response, Retrofit retrofit) {
+                    List<PictureTag> imageTags = response.body();
 
                     ArrayList<String> stringTags = new ArrayList<>();
-                    for (Imagga imageTag : imageTags) {
+                    for (PictureTag imageTag : imageTags) {
                         stringTags.add(imageTag.tagName + ":" + imageTag.confidence);
                     }
                     sendDataToReceivers(stringTags);
@@ -81,7 +81,7 @@ public class ImaggaService extends IntentService {
 
     public interface ImaggaApi {
         @GET("v1/tagging")
-        Call<List<Imagga>> getTags(@Query("url") String imageUrl, @Header("Authorization") String key);
+        Call<List<PictureTag>> getTags(@Query("url") String imageUrl, @Header("Authorization") String key);
     }
 
         private void sendDataToReceivers(ArrayList<String> stringTags) {
