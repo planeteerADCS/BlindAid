@@ -17,6 +17,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
@@ -27,6 +28,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.app.Fragment;
+import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.OrientationEventListener;
@@ -35,6 +37,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.parse.GetCallback;
@@ -45,11 +48,15 @@ import com.parse.ParseQuery;
 import com.parse.SaveCallback;
 import com.planeteers.blindaid.R;
 import com.planeteers.blindaid.base.TalkActivity;
+import com.planeteers.blindaid.gallery.GalleryActivity;
 import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.models.PictureTag;
+import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.tasks.ImageTaggingTasks;
+import com.planeteers.blindaid.util.ImageUtil;
 import com.planeteers.blindaid.util.PermissionUtil;
 import com.planeteers.blindaid.util.TagMerger;
+import com.planeteers.blindaid.view.BlindViewUtil;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -71,12 +78,9 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 			"photo_orientation";
 	private OrientationEventListener mOrientationEventListener;
 	private int mOrientation = 1;
-	private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
-		@Override
-		public void onShutter() {
-			mProgressContainer.setVisibility(View.VISIBLE);
-		}
-	};
+
+	public final static String INSTRUCTIONS = "Click to scan your surroundings. Swipe to the left to scan your " +
+			"pictures. Swipe up to use the digital white cane. Swipe down to close the app.";
 
 	@Bind(R.id.camera_surfaceView)
 	SurfaceView mSurfaceView;
@@ -84,22 +88,9 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 	@Bind(R.id.camera_progressContainer)
 	View mProgressContainer;
 
-	@Bind(R.id.camera_takePictureButton)
-	Button shutterButton;
+	@Bind(R.id.tag_textview)
+	TextView tagTextView;
 
-	@OnClick(R.id.camera_takePictureButton)
-	public void onShutterClicked(View v){
-		if (mCamera != null) {
-			mCamera.takePicture(mShutterCallback, null, mJpegCallback);
-		}
-	}
-
-	private Handler autoShutterHandler = new Handler(){
-		@Override
-		public void dispatchMessage(Message msg) {
-			super.dispatchMessage(msg);
-		}
-	};
 
 	private static int cameraId = 0;
 
@@ -140,10 +131,16 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 
 		ButterKnife.bind(this, v);
 
+		Typeface typeface = Typeface.createFromAsset(getActivity().getAssets(), "fonts/robotoslab_light.ttf");
+		tagTextView.setTypeface(typeface);
+
+		String htmlInstructions = INSTRUCTIONS.replace(".", ".<br/> <br/>");
+		tagTextView.setText(Html.fromHtml(htmlInstructions));
+
+		tagTextView.setContentDescription(INSTRUCTIONS);
+
 		mProgressContainer.setVisibility(View.INVISIBLE);
 
-		initializeSurfaceHolder();
-		
 		mOrientationEventListener = new OrientationEventListener(getActivity()) {
 			@Override
 			public void onOrientationChanged(int orientation) {
@@ -152,6 +149,57 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 		};
 		
 		return v;
+	}
+
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+
+		mSurfaceView.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				initializeSurfaceHolder();
+			}
+		}, 200);
+
+		BlindViewUtil blindViewUtil = new BlindViewUtil(new BlindViewUtil.BlindNavGestureListener() {
+			@Override
+			public boolean onSwipeLeft() {
+				return false;
+			}
+
+			@Override
+			public boolean onSwipeRight() {
+				Intent i = new Intent(getActivity(), GalleryActivity.class);
+				startActivity(i);
+				return true;
+			}
+
+			@Override
+			public boolean onSwipeUp() {
+				Intent i = new Intent(getActivity(), ObstacleDetection.class);
+				startActivity(i);
+				return true;
+			}
+
+			@Override
+			public boolean onSwipeDown() {
+				getActivity().finish();
+				return true;
+			}
+
+			@Override
+			public boolean onClick() {
+				if (mCamera != null) {
+					mProgressContainer.setVisibility(View.VISIBLE);
+					mCamera.takePicture(null, null, mJpegCallback);
+				}
+				return true;
+			}
+		});
+
+		mSurfaceView.setOnTouchListener(blindViewUtil.blindTouchListener);
+
 	}
 
 	private void initializeSurfaceHolder() {
@@ -335,6 +383,7 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 		super.onResume();
 		mOrientationEventListener.enable();
 		mCamera = getCameraInstance();
+
 	}
 	
 	@Override
@@ -378,13 +427,13 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 
 			Log.d("EXIF value: %s", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
 			if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("6")){
-				bitmap = rotate(bitmap, 90);
+				bitmap = ImageUtil.rotate(bitmap, 90);
 			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("8")){
-				bitmap = rotate(bitmap, 270);
+				bitmap = ImageUtil.rotate(bitmap, 270);
 			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("3")){
-				bitmap = rotate(bitmap, 180);
+				bitmap = ImageUtil.rotate(bitmap, 180);
 			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("0")){
-				bitmap = rotate(bitmap, 90);
+				bitmap = ImageUtil.rotate(bitmap, 90);
 			}
 
 		} catch (IOException e) {
@@ -453,16 +502,21 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 										StringBuilder builder = new StringBuilder();
 										for (int i = 0; i < tagNames.size(); i++) {
 
-											if (i < Constants.TAG_MERGER.MAX_PICTAG_SIZE) {
+											if (i < Constants.TAG_MERGER.MAX_PICTAG_SIZE -1) {
 												builder.append(tagNames.get(i).tagName).append(", ");
+											}else if(i == Constants.TAG_MERGER.MAX_PICTAG_SIZE - 1){
+												builder.append(tagNames.get(i).tagName);
 											}
 										}
 
 										if(getActivity() != null) {
 											mProgressContainer.setVisibility(View.GONE);
+											String newLinedTags = builder.toString().replace(", ", "<br/>");
+											tagTextView.setText(Html.fromHtml(newLinedTags));
+											tagTextView.setContentDescription(builder.toString());
 
 											TalkActivity talkActivity = (TalkActivity) getActivity();
-											talkActivity.talkBack(builder.toString());
+											talkActivity.talkBack("There is "+builder.toString());
 										}
 									}
 								});
@@ -474,13 +528,5 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 
 	}
 
-	public static Bitmap rotate(Bitmap bitmap, int degree) {
-		int w = bitmap.getWidth();
-		int h = bitmap.getHeight();
 
-		Matrix mtx = new Matrix();
-		mtx.postRotate(degree);
-
-		return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
-	}
 }

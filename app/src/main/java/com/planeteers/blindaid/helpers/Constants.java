@@ -13,7 +13,7 @@ public class Constants {
 
     public interface TAG_MERGER {
         int MAX_PICTAG_SIZE = 10;
-        String[] BLACK_LIST = new String[]{"politics", "business", "finance"};
+        String[] BLACK_LIST = new String[]{"politics", "business", "finance", "protest"};
     }
 
     public interface ACTION {
