@@ -53,4 +53,34 @@ public class PictureTag {
             return imaggaList;
         }
     }
+
+
+    public static class AylienDeserializer implements JsonDeserializer<List> {
+
+        @Override
+        public List<PictureTag> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            JsonObject object = json.getAsJsonObject();
+            List<PictureTag> imaggaList = new ArrayList<>();
+
+            if (object.has("image-tags")) {
+                JsonArray array = object.get("image-tags").getAsJsonArray();
+
+                for (JsonElement element : array) {
+                    JsonObject image = element.getAsJsonObject();
+                    JsonArray tags = image.get(Constants.IMAGGA.TAGS_KEY).getAsJsonArray();
+
+                    for (JsonElement tagElement : tags) {
+                        JsonObject tag = tagElement.getAsJsonObject();
+
+                        if (tag.has(Constants.ALYIEN.CONFIDENCE_KEY) && tag.has(Constants.IMAGGA.TAG_KEY)) {
+                            Double confidence = tag.get(Constants.IMAGGA.CONFIDENCE_KEY).getAsDouble();
+                            String tagName = tag.get(Constants.IMAGGA.TAG_KEY).getAsString();
+                            imaggaList.add(new PictureTag(tagName, confidence));
+                        }
+                    }
+                }
+            }
+            return imaggaList;
+        }
+    }
 }

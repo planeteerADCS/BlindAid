@@ -19,13 +19,15 @@ public class TagMerger {
         public void onComplete(List<PictureTag> tagResults);
     }
 
-    public static List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2) {
+    public static List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2, List<PictureTag> list3) {
 
         logPictureTagList(list1);
         logPictureTagList(list2);
+//        logPictureTagList(list3);
 
         normalizeList(list1);
         normalizeList(list2);
+//        normalizeList(list3);
 
         HashMap<String, Double> pictureMap = new HashMap<>();
 
@@ -35,6 +37,9 @@ public class TagMerger {
 
             PictureTag picTag2 = list2.get(i);
             evaluateKey(pictureMap, picTag2.tagName, picTag2.confidence);
+
+//            PictureTag picTag3 = list3.get(i);
+//            evaluateKey(pictureMap, picTag3.tagName, picTag3.confidence);
         }
 
 
@@ -65,12 +70,13 @@ public class TagMerger {
 
     private static void logPictureTagList(List<PictureTag> list) {
         Log.v("TagMerger", "Logging PicTagList...");
-        Log.v("TagMerger", " ");
-        Log.v("TagMerger", " ");
+        Log.v("TagMerger", ".");
+        Log.v("TagMerger", ".");
         for (PictureTag picTag : list) {
             Log.v("TagMerger", "TagName: " + picTag.tagName + " | " + " Confidence: " + picTag.confidence);
         }
         Log.v("TagMerger", "Finished Logging PicTagList...");
+        Log.v("TagMerger", ".");
     }
 
 
@@ -80,16 +86,5 @@ public class TagMerger {
             if (pictureTags.get(i) == null) break;
             pictureTags.get(i).confidence = pictureTags.get(i).confidence / maxConfidence;
         }
-    }
-
-    private static List<PictureTag> convertToPictureTags(List<String> list) {
-        List<PictureTag> picTags = new ArrayList<>();
-
-        for (String tag : list) {
-            String[] tagParts = tag.split(":");
-            picTags.add(new PictureTag(tagParts[0], Double.parseDouble(tagParts[1])));
-        }
-
-        return picTags;
     }
 }

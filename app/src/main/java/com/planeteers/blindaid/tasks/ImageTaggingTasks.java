@@ -7,20 +7,17 @@ import com.clarifai.api.Tag;
 import com.clarifai.api.exception.ClarifaiException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.planeteers.blindaid.api.AlyienApi;
 import com.planeteers.blindaid.api.ImaggaApi;
 import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.models.PictureTag;
 import com.planeteers.blindaid.util.LoggingInterceptor;
 import com.squareup.okhttp.OkHttpClient;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit.Call;
-import retrofit.Callback;
 import retrofit.GsonConverterFactory;
-import retrofit.Response;
 import retrofit.Retrofit;
 import retrofit.RxJavaCallAdapterFactory;
 import rx.Observable;
@@ -53,6 +50,40 @@ public class ImageTaggingTasks {
         return imagga.getTags(imageUrl, Constants.IMAGGA.AUTHORIZATION)
                 .subscribeOn(Schedulers.io());
     }
+
+
+    public static Observable<List<PictureTag>> getAlyienTags(String imageUrl){
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(List.class, new PictureTag.ImaggaDeserializer())
+                .create();
+
+        OkHttpClient client = new OkHttpClient();
+        client.interceptors().add(new LoggingInterceptor());
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(Constants.ALYIEN.API_URL)
+                .client(client)
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .build();
+
+        AlyienApi alyien = retrofit.create(AlyienApi.class);
+
+//        return alyien.getTags(imageUrl, Constants.ALYIEN.API_ID, Constants.ALYIEN.API_SECRET)
+//                .subscribeOn(Schedulers.io());
+
+        final List<PictureTag> stubList = new ArrayList<>();
+
+        return Observable.create(new Observable.OnSubscribe<List<PictureTag>>() {
+            @Override
+            public void call(Subscriber<? super List<PictureTag>> subscriber) {
+                subscriber.onNext(stubList);
+                subscriber.onCompleted();
+            }
+        })
+        .subscribeOn(Schedulers.io());
+    }
+
 
     public static Observable<List<PictureTag>> getClarifaiTags(final String imageUrl){
 

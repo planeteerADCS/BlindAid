@@ -10,6 +10,6 @@ import retrofit.http.Query;
 import rx.Observable;
 
 public interface AlyienApi {
-    @GET("API/v1/image-tags")
+    @GET("api/v1/image-tags")
     Observable<List<PictureTag>> getTags(@Query("url") String imageUrl, @Header("X-AYLIEN-TextAPI-Application-Key") String key, @Header("X-AYLIEN-TextAPI-Application-ID") String secret);
 }

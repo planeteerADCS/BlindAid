@@ -58,6 +58,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func2;
+import rx.functions.Func3;
 import timber.log.Timber;
 
 
@@ -427,10 +428,11 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 						Observable.zip(
 								ImageTaggingTasks.getClarifaiTags(imageUrl),
 								ImageTaggingTasks.getImaggaTags(imageUrl),
-								new Func2<List<PictureTag>, List<PictureTag>, List<PictureTag>>() {
+                                ImageTaggingTasks.getAlyienTags(imageUrl),
+								new Func3<List<PictureTag>, List<PictureTag>, List<PictureTag>, List<PictureTag>>() {
 									@Override
-									public List<PictureTag> call(List<PictureTag> clarifai, List<PictureTag> imaggas) {
-										return TagMerger.mergeTags(clarifai, imaggas);
+									public List<PictureTag> call(List<PictureTag> clarifai, List<PictureTag> imaggas, List<PictureTag> alyien) {
+										return TagMerger.mergeTags(clarifai, imaggas, alyien);
 									}
 								}
 						)

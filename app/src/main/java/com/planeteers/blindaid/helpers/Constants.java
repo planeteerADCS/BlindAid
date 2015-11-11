@@ -12,7 +12,7 @@ public class Constants {
     }
 
     public interface TAG_MERGER {
-        int MAX_PICTAG_SIZE = 7;
+        int MAX_PICTAG_SIZE = 10;
     }
 
     public interface ACTION {
@@ -28,6 +28,15 @@ public class Constants {
     public interface CLARIFAI {
         String APP_ID = "nOVRTkdFjshLLibO-vu5IxHi-vb0NU-u9jVxQLZ7";
         String APP_SECRET = "eJeVpqilheUoEkow61tyZoW1HOihVbw1TjhXJlFa";
+    }
+
+    public interface ALYIEN {
+        String API_ID = "cde7c42b";
+        String API_SECRET = "1ba093c3e15ffaaf8c644317566815af";
+        String API_URL = "http://api.aylien.com/";
+        String TAGS_KEY = "tags";
+        String TAG_KEY = "tag";
+        String CONFIDENCE_KEY = "confidence";
     }
 
     public interface IMAGGA {
