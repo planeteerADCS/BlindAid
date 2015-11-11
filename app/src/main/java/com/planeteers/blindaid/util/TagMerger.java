@@ -19,7 +19,6 @@ public class TagMerger {
         public void onComplete(List<PictureTag> tagResults);
     }
 
-
     public List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2) {
 
         logPictureTagList(list1);
@@ -65,14 +64,14 @@ public class TagMerger {
     }
 
     private void logPictureTagList(List<PictureTag> list) {
-        for (PictureTag picTag : list) {
-            Log.v("TagMerger", "Logging PicTagList...");
-            Log.v("TagMerger", "");
-            Log.v("TagMerger", "");
+        Log.v("TagMerger", "Logging PicTagList...");
+        Log.v("TagMerger", "");
+        Log.v("TagMerger", "");
 
+        for (PictureTag picTag : list) {
             Log.v("TagMerger", "TagName: " + picTag.tagName + " | " + " Confidence: " + picTag.confidence);
-            Log.v("TagMerger", "Finished Logging PicTagList...");
         }
+        Log.v("TagMerger", "Finished Logging PicTagList...");
     }
 
 
