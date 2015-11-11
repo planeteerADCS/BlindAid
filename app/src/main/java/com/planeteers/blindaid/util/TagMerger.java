@@ -20,24 +20,21 @@ public class TagMerger {
     }
 
 
-    public List<PictureTag> mergeTags(List<String> list1, List<String> list2) {
+    public List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2) {
 
-        List<PictureTag> list1PicTags = convertToPictureTags(list1);
-        List<PictureTag> list2PicTags = convertToPictureTags(list2);
+        logPictureTagList(list1);
+        logPictureTagList(list2);
 
-        logPictureTagList(list1PicTags);
-        logPictureTagList(list1PicTags);
-
-        normalizeList(list1PicTags);
-        normalizeList(list2PicTags);
+        normalizeList(list1);
+        normalizeList(list2);
 
         HashMap<String, Double> pictureMap = new HashMap<>();
 
         for(int i = 0; i < Constants.TAG_MERGER.MAX_PICTAG_SIZE; i++) {
-            PictureTag picTag1 = list1PicTags.get(i);
+            PictureTag picTag1 = list1.get(i);
             evaluateKey(pictureMap, picTag1.tagName, picTag1.confidence);
 
-            PictureTag picTag2 = list2PicTags.get(i);
+            PictureTag picTag2 = list2.get(i);
             evaluateKey(pictureMap, picTag2.tagName, picTag2.confidence);
         }
 
@@ -85,17 +82,5 @@ public class TagMerger {
             if (pictureTags.get(i) == null) break;
             pictureTags.get(i).confidence = pictureTags.get(i).confidence / maxConfidence;
         }
-    }
-
-
-    private List<PictureTag> convertToPictureTags(List<String> list) {
-        List<PictureTag> picTags = new ArrayList<>();
-
-        for (String tag : list) {
-            String[] tagParts = tag.split(":");
-            picTags.add(new PictureTag(tagParts[0], Double.parseDouble(tagParts[1])));
-        }
-
-        return picTags;
     }
 }

@@ -6,6 +6,10 @@ public class Constants {
         String RECEIVER_INTENT_FILTER = "broadcast_receiver_filter";
     }
 
+    public interface PARSE {
+        String PARSE_APP_ID = "3reP8WePd3FG2VwFnrxQLZL1zbsNPB3a0oMQMIJ1";
+        String PARSE_CLIENT_KEY =  "oMxr6E8aUtB6YeGWC2vxIlaGfk7WarQ82N4066SH";
+    }
 
     public interface TAG_MERGER {
         int MAX_PICTAG_SIZE = 5;
