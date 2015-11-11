@@ -65,8 +65,7 @@ public class TagMerger {
 
 
     private static void evaluateKey(HashMap<String, Double> map, String tag, Double confidence) {
-
-        List<String> bannedTags = new ArrayList<String>(Arrays.asList("politics", "business", "finance"));
+        List<String> bannedTags = new ArrayList<String>(Arrays.asList(Constants.TAG_MERGER.BLACK_LIST));
 
         if (!bannedTags.contains(tag)) {
             if (map.containsKey(tag)) {
