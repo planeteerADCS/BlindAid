@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
 
     Context mContext;
 
+    // tags & probability returned from Clarifai API
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -74,11 +75,12 @@ public class MainActivity extends AppCompatActivity {
                 tagNames.add(tagParts[0]);
                 tagProbs.add(Double.parseDouble(tagParts[1]));
             }
-
+            // now say tags and certainty factor out loud
             talkBack(tagNames, tagProbs);
         }
     };
 
+    // launch camera
     @OnClick(R.id.cameraFeedButton)
     public void onCameraButtonClicked(View v) {
         Intent i = new Intent(this, CameraActivity.class);
@@ -136,28 +138,7 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.unbind(this);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; L<this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
+    // show and save image taken from camera
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -167,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
                 String fullPath = getFilesDir() + "/" + path;
                 Log.d("Camera", "wrote file to: " + path);
 
+                // display image taken
                 File image = new File(fullPath);
                 BitmapFactory.Options bmOptions = new BitmapFactory.Options();
                 Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
@@ -174,15 +156,15 @@ public class MainActivity extends AppCompatActivity {
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
+                // compress image
                 final ParseObject imageParseObject = new ParseObject("Image");
-
-
 
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
                 byte[] imageData = stream.toByteArray();
                 ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
 
+                // prep compressed image to Clarifai
                 imageParseObject.put("image", imageParseFile);
                 imageParseObject.saveInBackground(new SaveCallback() {
                     @Override
@@ -198,8 +180,6 @@ public class MainActivity extends AppCompatActivity {
                                 Log.v("image url:", imageUrl);
                             }
                         });
-
-
                     }
                 });
 
@@ -211,6 +191,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // TalkBack to announce tag and certainty factor (percentage)
     private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
         mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @TargetApi(Build.VERSION_CODES.LOLLIPOP)
