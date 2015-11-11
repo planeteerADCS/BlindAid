@@ -6,6 +6,11 @@ public class Constants {
         String RECEIVER_INTENT_FILTER = "broadcast_receiver_filter";
     }
 
+
+    public interface TAG_MERGER {
+        int MAX_PICTAG_SIZE = 5;
+    }
+
     public interface ACTION {
         String START_CLARIFAI_ACTION = "start_clarifai";
         String START_IMAGGA_ACTION = "start_imagga";

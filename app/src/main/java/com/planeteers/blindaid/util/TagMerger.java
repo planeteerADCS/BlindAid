@@ -2,6 +2,7 @@ package com.planeteers.blindaid.util;
 
 import android.util.Log;
 
+import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.models.PictureTag;
 
 import java.util.ArrayList;
@@ -27,37 +28,21 @@ public class TagMerger {
         logPictureTagList(list1PicTags);
         logPictureTagList(list1PicTags);
 
-
-        List<PictureTag> mergedList = new ArrayList<>();
-
         normalizeList(list1PicTags);
         normalizeList(list2PicTags);
 
         HashMap<String, Double> pictureMap = new HashMap<>();
 
-        for(int i = 0; i < 5; i++) {
-            String tagName1 = list1PicTags.get(i).tagName;
-            String tagName2 = list2PicTags.get(i).tagName;
-            Double tagDouble1 = list1PicTags.get(i).confidence;
-            Double tagDouble2 = list2PicTags.get(i).confidence;
-            if (pictureMap.containsKey(tagName1)) {
-                Double oldValue = pictureMap.get(tagName1);
-                pictureMap.put(tagName1, oldValue + tagDouble1);
-            } else {
-                //add to list
-                pictureMap.put(tagName1, tagDouble1);
-            }
-            if (pictureMap.containsKey(tagName2)) {
-                Double oldValue = pictureMap.get(tagName2);
-                pictureMap.put(tagName2, oldValue + tagDouble2);
-            } else {
-                //add to list
-              pictureMap.put(tagName2, tagDouble2);
-            }
+        for(int i = 0; i < Constants.TAG_MERGER.MAX_PICTAG_SIZE; i++) {
+            PictureTag picTag1 = list1PicTags.get(i);
+            evaluateKey(pictureMap, picTag1.tagName, picTag1.confidence);
+
+            PictureTag picTag2 = list2PicTags.get(i);
+            evaluateKey(pictureMap, picTag2.tagName, picTag2.confidence);
         }
 
 
-
+        List<PictureTag> mergedList = new ArrayList<>();
         for (String tag : pictureMap.keySet()) {
             mergedList.add(new PictureTag(tag, pictureMap.get(tag)));
         }
@@ -74,6 +59,14 @@ public class TagMerger {
         return mergedList;
     }
 
+
+    private void evaluateKey(HashMap<String, Double> map, String tag, Double confidence) {
+        if (map.containsKey(tag)) {
+            Double oldConfidence = map.get(tag);
+            map.put(tag, oldConfidence + confidence);
+        } else { map.put(tag, confidence); }
+    }
+
     private void logPictureTagList(List<PictureTag> list) {
         for (PictureTag picTag : list) {
             Log.v("TagMerger", "Logging PicTagList...");
@@ -85,9 +78,10 @@ public class TagMerger {
         }
     }
 
+
     private void normalizeList(List<PictureTag> pictureTags) {
         double maxConfidence = pictureTags.get(0).confidence;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < Constants.TAG_MERGER.MAX_PICTAG_SIZE; i++) {
             if (pictureTags.get(i) == null) break;
             pictureTags.get(i).confidence = pictureTags.get(i).confidence / maxConfidence;
         }
