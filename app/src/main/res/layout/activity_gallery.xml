@@ -4,9 +4,34 @@
     android:layout_height="match_parent"
     tools:context="com.planeteers.blindaid.gallery.GalleryActivity">
 
+
     <android.support.v4.view.ViewPager
         android:id="@+id/gallery_view_pager"
         android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"/>
+
+    <FrameLayout
+        android:id="@+id/gallery_blind_nav_view"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"/>
+
+    <include layout="@layout/tag_instruction_layout" />
+
+    <FrameLayout
+        android:id="@+id/camera_progressContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:padding="@dimen/activity_horizontal_margin"
+        android:layout_gravity="bottom|center_horizontal">
+
+        <ProgressBar
+            style="?android:progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </FrameLayout>
+
 
 </FrameLayout>

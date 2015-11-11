@@ -1,22 +1,55 @@
 package com.planeteers.blindaid.camera;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
 import android.view.Window;
 import android.view.WindowManager;
 
-public class CameraActivity extends SingleFragmentActivity {
+import com.planeteers.blindaid.R;
+import com.planeteers.blindaid.base.TalkActivity;
 
-	// adb shell am start -n com.bignerdranch.android.criminalintent/.CameraActivity
+public class CameraActivity extends TalkActivity {
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-		super.onCreate(savedInstanceState);
+        super.onCreate(savedInstanceState);
+
+        //equestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+		setContentView(R.layout.activity_fragment);
+
+		FragmentManager fm = getSupportFragmentManager();
+		Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
+
+		if (fragment == null) {
+			fragment = createFragment();
+			fm.beginTransaction()
+					.add(R.id.fragmentContainer, fragment)
+					.commit();
+		}
+
 	}
-	
-	@Override
-	protected Fragment createFragment() {
+
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        Handler handler = new Handler();
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                talkBack(CameraFragment.INSTRUCTIONS);
+
+            }
+        }, 1500);
+    }
+
+    protected Fragment createFragment() {
 		return new CameraFragment();
 	}
 

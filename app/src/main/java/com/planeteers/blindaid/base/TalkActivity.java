@@ -1,6 +1,5 @@
 package com.planeteers.blindaid.base;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -8,14 +7,16 @@ import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.TextView;
 
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import timber.log.Timber;
 
@@ -30,27 +31,6 @@ public class TalkActivity extends AppCompatActivity{
 
     private TagsRetrievedListener tagsRetrievedListener;
 
-    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
-            ArrayList<String> tagNames = new ArrayList<>();
-            ArrayList<Double> tagProbs = new ArrayList<>();
-
-            for (String tag : tags) {
-                String[] tagParts = tag.split(":");
-                tagNames.add(tagParts[0]);
-                tagProbs.add(Double.parseDouble(tagParts[1]));
-            }
-
-            if(tagsRetrievedListener != null){
-                tagsRetrievedListener.onTagsRetrieved(tagNames, tagProbs);
-            }else{
-                Timber.e("There is no TagsRetrievedListener set.");
-            }
-        }
-    };
-
     /**
      * Callback interface to be used when retrieving tags from an image
      */
@@ -62,8 +42,7 @@ public class TalkActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+
     }
 
     @Override
@@ -74,38 +53,42 @@ public class TalkActivity extends AppCompatActivity{
             @Override
             public void onInit(int status) {
                 textToSpeechReady = status == TextToSpeech.SUCCESS;
+
+                mTts.setSpeechRate(0.85f);
             }
         });
+
+
+
 
     }
 
     @Override
     public void onPause() {
         // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
-
-        if(mTts != null && mTts.isSpeaking()){
-            mTts.stop();
-        }
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(mTts != null){
+            mTts.stop();
+            mTts.shutdown();
+        }
+        super.onDestroy();
     }
 
     @Override
     public void onResume() {
         // Reregister since the activity is visible
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         super.onResume();
     }
 
-    public static Intent getServiceIntent(Context context, String action) {
-        Intent serviceIntent = new Intent(context, ClarifaiService.class);
-        serviceIntent.setAction(action);
-        return serviceIntent;
-    }
 
+    // say it out loud
     public void talkBack(String message) {
         if(textToSpeechReady) {
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mTts.speak(message, TextToSpeech.QUEUE_FLUSH, null, null);
             } else {
@@ -114,7 +97,6 @@ public class TalkActivity extends AppCompatActivity{
         }else{
             Timber.e("Text To Speech engine is not ready. Make sure it is being initialized first!!!");
         }
-
     }
 
     public void setTagsRetrievedListener(TagsRetrievedListener tagsRetrievedListener) {

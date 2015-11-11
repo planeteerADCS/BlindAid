@@ -10,7 +10,9 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -25,20 +27,43 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Html;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
+import com.parse.GetCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
 import com.planeteers.blindaid.R;
 import com.planeteers.blindaid.base.TalkActivity;
+import com.planeteers.blindaid.camera.CameraFragment;
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
+import com.planeteers.blindaid.models.PictureTag;
+import com.planeteers.blindaid.tasks.ImageTaggingTasks;
+import com.planeteers.blindaid.util.ImageUtil;
+import com.planeteers.blindaid.util.TagMerger;
+import com.planeteers.blindaid.view.BlindViewUtil;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
+import rx.functions.Func3;
+import rx.subscriptions.CompositeSubscription;
 import timber.log.Timber;
 
 /**
@@ -64,10 +89,22 @@ public class GalleryActivity extends TalkActivity {
      */
     private static final int UI_ANIMATION_DELAY = 300;
 
+    public final static String INSTRUCTIONS = "Swipe to the left to go to the next picture. " +
+            "Swipe to the right to go the previous picture. Swipe down to go back.";
+
     GalleryPagerAdapter mGalleryPagerAdapter;
 
     @Bind(R.id.gallery_view_pager)
     ViewPager viewPager;
+
+    @Bind(R.id.gallery_blind_nav_view)
+    FrameLayout blindNavView;
+
+    @Bind(R.id.camera_progressContainer)
+    View mProgressContainer;
+
+    @Bind(R.id.tag_textview)
+    TextView tagTextView;
 
     private boolean mVisible;
 
@@ -84,6 +121,16 @@ public class GalleryActivity extends TalkActivity {
 
         viewPager.setOffscreenPageLimit(2);
 
+        Typeface typeface = Typeface.createFromAsset(getAssets(), "fonts/robotoslab_light.ttf");
+        tagTextView.setTypeface(typeface);
+
+        String htmlInstructions = INSTRUCTIONS.replace(".", ".<br/> <br/>");
+        tagTextView.setText(Html.fromHtml(htmlInstructions));
+
+        tagTextView.setContentDescription(INSTRUCTIONS);
+
+        mProgressContainer.setVisibility(View.INVISIBLE);
+
         setTagsRetrievedListener(new TagsRetrievedListener() {
             @Override
             public void onTagsRetrieved(ArrayList<String> tagNames, ArrayList<Double> tagProbs) {
@@ -91,12 +138,7 @@ public class GalleryActivity extends TalkActivity {
                 for (int i = 0; i < tagNames.size(); i++) {
 
                     if (i < 7){
-                        if(i == 0){
-                            builder.append("There is ");
-                        }else{
-                            builder.append(" there's also ");
-                        }
-                        builder.append(tagNames.get(i));
+                        builder.append(tagNames.get(i)).append(", ");
                     }
                 }
 
@@ -107,6 +149,70 @@ public class GalleryActivity extends TalkActivity {
         ImageAsyncTask imageAsyncTask = new ImageAsyncTask(getApplication());
         imageAsyncTask.execute();
 
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
+        BlindViewUtil blindViewUtil = new BlindViewUtil(new BlindViewUtil.BlindNavGestureListener() {
+            @Override
+            public boolean onSwipeLeft() {
+                Timber.d("OnSwipeLeft Called");
+
+                int currentItem = viewPager.getCurrentItem();
+                if (currentItem != 0) {
+                    viewPager.setCurrentItem(currentItem - 1);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeRight() {
+                Timber.d("OnSwipeRight Called");
+                int currentItem = viewPager.getCurrentItem();
+                if (mGalleryPagerAdapter.getCount() > currentItem) {
+                    viewPager.setCurrentItem(currentItem + 1);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeUp() {
+                Timber.d("OnSwipeUp Called");
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeDown() {
+                Timber.d("OnSwipeDown Called");
+                finish();
+                return false;
+            }
+
+            @Override
+            public boolean onClick() {
+                Timber.d("OnClick Called");
+                return false;
+            }
+        });
+
+        blindNavView.setOnTouchListener(blindViewUtil.blindTouchListener);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        Handler handler = new Handler();
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                talkBack(INSTRUCTIONS);
+
+            }
+        }, 1500);
     }
 
     private class GalleryPagerAdapter extends FragmentStatePagerAdapter{
@@ -166,6 +272,9 @@ public class GalleryActivity extends TalkActivity {
 
     private void setImageArray(final ArrayList<String> imageArray){
         if(viewPager != null){
+            //Make the first fragment an empty one for the instructions
+            imageArray.add(0, "");
+
             mGalleryPagerAdapter = new GalleryPagerAdapter(getSupportFragmentManager(), imageArray);
             viewPager.setAdapter(mGalleryPagerAdapter);
 
@@ -178,10 +287,8 @@ public class GalleryActivity extends TalkActivity {
                 @Override
                 public void onPageSelected(int position) {
                     String imageUrl = imageArray.get(position);
-
-                    startService(TalkActivity.getServiceIntent(GalleryActivity.this,
-                            Constants.ACTION.START_CLARIFAI_ACTION).setData(Uri.parse(imageUrl)
-                    ));
+                    mProgressContainer.setVisibility(View.VISIBLE);
+                    processImage(imageUrl);
                 }
 
                 @Override
@@ -194,6 +301,117 @@ public class GalleryActivity extends TalkActivity {
                 viewPager.setCurrentItem(0, false);
             }
         }
+    }
+
+    private void processImage(String imageUrl) {
+        File image = new File(imageUrl);
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
+
+        ExifInterface exif= null;
+        try {
+            exif = new ExifInterface(image.toString());
+
+            Log.d("EXIF value: %s", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+            if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("6")){
+                bitmap = ImageUtil.rotate(bitmap, 90);
+            } else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("8")){
+                bitmap = ImageUtil.rotate(bitmap, 270);
+            } else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("3")){
+                bitmap = ImageUtil.rotate(bitmap, 180);
+            } else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("0")){
+                bitmap = ImageUtil.rotate(bitmap, 90);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // display image taken
+        BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
+        //mPreviewImage.setImageDrawable(bitmapDrawable);
+
+
+        // compress image
+        final ParseObject imageParseObject = new ParseObject("Image");
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+        byte[] imageData = stream.toByteArray();
+        ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
+
+        // save compressed image for upload
+        imageParseObject.put("image", imageParseFile);
+        imageParseObject.saveInBackground(new SaveCallback() {
+            @Override
+            public void done(ParseException e) {
+                String imageObjectId = imageParseObject.getObjectId();
+                Timber.d("imageObjectID: %s", imageObjectId);
+                ParseQuery<ParseObject> query = ParseQuery.getQuery("Image");
+
+                query.getInBackground(imageObjectId, new GetCallback<ParseObject>() {
+                    @Override
+                    public void done(ParseObject parseObject, ParseException e) {
+                        if(e != null){
+                            Timber.e(e, e.getMessage());
+                            return;
+                        }
+
+                        String imageUrl = parseObject.getParseFile("image").getUrl();
+                        Log.v("image url:", imageUrl);
+
+
+                        Observable.zip(
+                                ImageTaggingTasks.getClarifaiTags(imageUrl),
+                                ImageTaggingTasks.getImaggaTags(imageUrl),
+                                ImageTaggingTasks.getAlyienTags(imageUrl),
+                                new Func3<List<PictureTag>, List<PictureTag>, List<PictureTag>, List<PictureTag>>() {
+                                    @Override
+                                    public List<PictureTag> call(List<PictureTag> clarifai, List<PictureTag> imaggas, List<PictureTag> alyen) {
+                                        return TagMerger.mergeTags(clarifai, imaggas, alyen);
+                                    }
+                                }
+                        )
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new Subscriber<List<PictureTag>>() {
+                                    @Override
+                                    public void onCompleted() {
+
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Timber.e(e, e.getMessage());
+                                    }
+
+                                    @Override
+                                    public void onNext(List<PictureTag> tagNames) {
+                                        StringBuilder builder = new StringBuilder();
+                                        for (int i = 0; i < tagNames.size(); i++) {
+
+                                            if (i < Constants.TAG_MERGER.MAX_PICTAG_SIZE - 1) {
+                                                builder.append(tagNames.get(i).tagName).append(", ");
+                                            } else if (i == Constants.TAG_MERGER.MAX_PICTAG_SIZE - 1) {
+                                                builder.append(tagNames.get(i).tagName);
+                                            }
+                                        }
+
+
+                                        mProgressContainer.setVisibility(View.GONE);
+                                        String newLinedTags = builder.toString().replace(", ", "<br/>");
+                                        tagTextView.setText(Html.fromHtml(newLinedTags));
+                                        tagTextView.setContentDescription(builder.toString());
+
+
+                                        talkBack("There is "+builder.toString());
+
+                                    }
+                                });
+
+                    }
+                });
+            }
+        });
     }
 
     public class ImageAsyncTask extends AsyncTask<Void, Void, ArrayList<String>>{

@@ -7,7 +7,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,17 +22,27 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
+import com.parse.GetCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
+import com.planeteers.blindaid.base.TalkActivity;
 import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
 import com.planeteers.blindaid.gallery.GalleryActivity;
 import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.models.PictureTag;
 import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
-import com.planeteers.blindaid.services.ClarifaiService;
+import com.planeteers.blindaid.tasks.ImageTaggingTasks;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.net.URL;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +50,13 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
 import timber.log.Timber;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends TalkActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
 
     @Bind(R.id.cameraFeedButton)
@@ -50,41 +66,31 @@ public class MainActivity extends AppCompatActivity {
     @Bind(R.id.previewImage)
     ImageView mPreviewImage;
     private TextToSpeech mTts;
-    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.TAG_LIST_KEY);
-            ArrayList<String> tagNames = new ArrayList<>();
-            ArrayList<Double> tagProbs = new ArrayList<>();
 
-            for (String tag : tags) {
-                String[] tagParts = tag.split(":");
-                tagNames.add(tagParts[0]);
-                tagProbs.add(Double.parseDouble(tagParts[1]));
-            }
+    Context mContext;
 
-            talkBack(tagNames, tagProbs);
-        }
-    };
-
+    // launch camera
     @OnClick(R.id.cameraFeedButton)
     public void onCameraButtonClicked(View v) {
         Intent i = new Intent(this, CameraActivity.class);
         startActivityForResult(i, REQUEST_CODE_CAMERA);
     }
 
+    //
     @OnClick(R.id.faceDetectButton)
     public void onFaceDetectButtonClicked(View v) {
         Intent i = new Intent(this, FaceDetectActivity.class);
         startActivity(i);
     }
 
+    //
     @OnClick(R.id.openCvButton)
     public void onOpenCvButtonClicked(View v) {
         Intent i = new Intent(this, ObstacleDetection.class);
         startActivity(i);
     }
 
+    //
     @OnClick(R.id.galleryButton)
     public void onGalleryButtonClicked(View v){
         Intent i = new Intent(this, GalleryActivity.class);
@@ -95,25 +101,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
+
+        mContext = this;
 
         ButterKnife.bind(this);
-    }
-
-    @Override
-    public void onPause() {
-        // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
-        super.onPause();
-    }
-
-    @Override
-    public void onResume() {
-        // Reregister since the activity is visible
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
-        super.onResume();
     }
 
     @Override
@@ -122,81 +113,5 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.unbind(this);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; L<this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_CAMERA) {
-            if (resultCode == RESULT_OK) {
-                String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
-                String fullPath = getFilesDir() + "/" + path;
-                Log.d("Camera", "wrote file to: " + path);
-
-                File image = new File(fullPath);
-                BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-                Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
-
-                BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
-                mPreviewImage.setImageDrawable(bitmapDrawable);
-
-                this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
-                        Uri.parse(fullPath)
-                ));
-            }
-        }
-    }
-
-    private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
-        mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.ERROR) {
-                    Timber.e("error", TextToSpeech.ERROR);
-                } else {
-                    String speakString = "";
-                    for (int i = 0; i < tagNames.size(); i++) {
-                        if (i < 10)speakString += "In view " + tagNames.get(i) + " Certainty " + toPercentage(tagProbs.get(i)) + ". ";
-                    }
-                    mTts.speak(speakString, 0, null, null);
-                }
-            }
-        });
-    }
-
-    private String toPercentage(double number) {
-        float percent = (float) number;
-        NumberFormat defaultFormat = NumberFormat.getPercentInstance();
-        defaultFormat.setMaximumFractionDigits(0);
-
-        return  defaultFormat.format(percent);
-
-    }
-
-    private Intent getServiceIntent(String action) {
-        Intent serviceIntent = new Intent(this, ClarifaiService.class);
-        serviceIntent.setAction(action);
-        return serviceIntent;
-    }
 }

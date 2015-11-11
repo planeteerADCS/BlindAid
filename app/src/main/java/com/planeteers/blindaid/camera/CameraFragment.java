@@ -1,5 +1,7 @@
 package com.planeteers.blindaid.camera;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -11,13 +13,23 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
+import android.media.ExifInterface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.app.Fragment;
+import android.text.Html;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -25,14 +37,35 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.parse.GetCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
 import com.planeteers.blindaid.R;
+import com.planeteers.blindaid.base.TalkActivity;
+import com.planeteers.blindaid.gallery.GalleryActivity;
+import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.models.PictureTag;
+import com.planeteers.blindaid.obstacle.ObstacleDetection;
+import com.planeteers.blindaid.tasks.ImageTaggingTasks;
+import com.planeteers.blindaid.util.ImageUtil;
 import com.planeteers.blindaid.util.PermissionUtil;
+import com.planeteers.blindaid.util.TagMerger;
+import com.planeteers.blindaid.view.BlindViewUtil;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
+import rx.functions.Func3;
 import timber.log.Timber;
 
 
@@ -45,12 +78,9 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 			"photo_orientation";
 	private OrientationEventListener mOrientationEventListener;
 	private int mOrientation = 1;
-	private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
-		@Override
-		public void onShutter() {
-			mProgressContainer.setVisibility(View.VISIBLE);
-		}
-	};
+
+	public final static String INSTRUCTIONS = "Click to scan your surroundings. Swipe to the left to scan your " +
+			"pictures. Swipe up to use the digital white cane. Swipe down to close the app.";
 
 	@Bind(R.id.camera_surfaceView)
 	SurfaceView mSurfaceView;
@@ -58,15 +88,9 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 	@Bind(R.id.camera_progressContainer)
 	View mProgressContainer;
 
-	@Bind(R.id.camera_takePictureButton)
-	Button shutterButton;
+	@Bind(R.id.tag_textview)
+	TextView tagTextView;
 
-	@OnClick(R.id.camera_takePictureButton)
-	public void onShutterClicked(View v){
-		if (mCamera != null) {
-			mCamera.takePicture(mShutterCallback, null, mJpegCallback);
-		}
-	}
 
 	private static int cameraId = 0;
 
@@ -91,17 +115,12 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 					success = false;
 				}
 			}
-			
+
 			if (success) {
 //				Timber.i(TAG, "JPEG saved at " + filename);
-				Intent i = new Intent();
-				i.putExtra(EXTRA_PHOTO_FILENAME, filename);
-				i.putExtra(EXTRA_PHOTO_ORIENTATION, mOrientation);
-				getActivity().setResult(Activity.RESULT_OK, i);
-			} else {
-				getActivity().setResult(Activity.RESULT_CANCELED);
+				processImage(filename);
+				mCamera.startPreview();
 			}
-			getActivity().finish();
 		}
 	};
 	
@@ -112,10 +131,16 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 
 		ButterKnife.bind(this, v);
 
+		Typeface typeface = Typeface.createFromAsset(getActivity().getAssets(), "fonts/robotoslab_light.ttf");
+		tagTextView.setTypeface(typeface);
+
+		String htmlInstructions = INSTRUCTIONS.replace(".", ".<br/> <br/>");
+		tagTextView.setText(Html.fromHtml(htmlInstructions));
+
+		tagTextView.setContentDescription(INSTRUCTIONS);
+
 		mProgressContainer.setVisibility(View.INVISIBLE);
 
-		initializeSurfaceHolder();
-		
 		mOrientationEventListener = new OrientationEventListener(getActivity()) {
 			@Override
 			public void onOrientationChanged(int orientation) {
@@ -124,6 +149,57 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 		};
 		
 		return v;
+	}
+
+	@Override
+	public void onActivityCreated(Bundle savedInstanceState) {
+		super.onActivityCreated(savedInstanceState);
+
+		mSurfaceView.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				initializeSurfaceHolder();
+			}
+		}, 200);
+
+		BlindViewUtil blindViewUtil = new BlindViewUtil(new BlindViewUtil.BlindNavGestureListener() {
+			@Override
+			public boolean onSwipeLeft() {
+				return false;
+			}
+
+			@Override
+			public boolean onSwipeRight() {
+				Intent i = new Intent(getActivity(), GalleryActivity.class);
+				startActivity(i);
+				return true;
+			}
+
+			@Override
+			public boolean onSwipeUp() {
+				Intent i = new Intent(getActivity(), ObstacleDetection.class);
+				startActivity(i);
+				return true;
+			}
+
+			@Override
+			public boolean onSwipeDown() {
+				getActivity().finish();
+				return true;
+			}
+
+			@Override
+			public boolean onClick() {
+				if (mCamera != null) {
+					mProgressContainer.setVisibility(View.VISIBLE);
+					mCamera.takePicture(null, null, mJpegCallback);
+				}
+				return true;
+			}
+		});
+
+		mSurfaceView.setOnTouchListener(blindViewUtil.blindTouchListener);
+
 	}
 
 	private void initializeSurfaceHolder() {
@@ -181,7 +257,18 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 						);
 
 				parameters.setPictureSize(optimalSize.width, optimalSize.height);
-				mCamera.setParameters(parameters);
+				try {
+					mCamera.setParameters(parameters);
+				}catch (Exception e){
+					Timber.e(e, e.getMessage());
+
+					parameters = mCamera.getParameters();
+					Size s = getBestSupportedSize(parameters.getSupportedPreviewSizes(), width, height);
+					parameters.setPreviewSize(s.width, s.height);
+					s = getBestSupportedSize(parameters.getSupportedPictureSizes(), width, height);
+					parameters.setPictureSize(s.width, s.height);
+					mCamera.setParameters(parameters);
+				}
 				mCamera.setDisplayOrientation(90);
 				try {
 					mCamera.startPreview();
@@ -296,6 +383,7 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 		super.onResume();
 		mOrientationEventListener.enable();
 		mCamera = getCameraInstance();
+
 	}
 	
 	@Override
@@ -324,4 +412,121 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 				super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 			}
 	}
+
+	public void processImage(String fileName){
+		String fullPath = getActivity().getFilesDir() + "/" + fileName;
+		Log.d("Camera", "wrote file to: " + fileName);
+
+		File image = new File(fullPath);
+		BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+		Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
+
+		ExifInterface exif= null;
+		try {
+			exif = new ExifInterface(image.toString());
+
+			Log.d("EXIF value: %s", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+			if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("6")){
+				bitmap = ImageUtil.rotate(bitmap, 90);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("8")){
+				bitmap = ImageUtil.rotate(bitmap, 270);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("3")){
+				bitmap = ImageUtil.rotate(bitmap, 180);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("0")){
+				bitmap = ImageUtil.rotate(bitmap, 90);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// display image taken
+		BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
+		//mPreviewImage.setImageDrawable(bitmapDrawable);
+
+
+		// compress image
+		final ParseObject imageParseObject = new ParseObject("Image");
+
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+		byte[] imageData = stream.toByteArray();
+		ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
+
+		// save compressed image for upload
+		imageParseObject.put("image", imageParseFile);
+		imageParseObject.saveInBackground(new SaveCallback() {
+			@Override
+			public void done(ParseException e) {
+				String imageObjectId = imageParseObject.getObjectId();
+				Timber.d("imageObjectID: %s", imageObjectId);
+				ParseQuery<ParseObject> query = ParseQuery.getQuery("Image");
+
+				query.getInBackground(imageObjectId, new GetCallback<ParseObject>() {
+					@Override
+					public void done(ParseObject parseObject, ParseException e) {
+						if(e != null){
+							Timber.e(e, e.getMessage());
+							return;
+						}
+
+						String imageUrl = parseObject.getParseFile("image").getUrl();
+						Log.v("image url:", imageUrl);
+
+
+						Observable.zip(
+								ImageTaggingTasks.getClarifaiTags(imageUrl),
+								ImageTaggingTasks.getImaggaTags(imageUrl),
+                                ImageTaggingTasks.getAlyienTags(imageUrl),
+								new Func3<List<PictureTag>, List<PictureTag>, List<PictureTag>, List<PictureTag>>() {
+									@Override
+									public List<PictureTag> call(List<PictureTag> clarifai, List<PictureTag> imaggas, List<PictureTag> alyien) {
+										return TagMerger.mergeTags(clarifai, imaggas, alyien);
+									}
+								}
+						)
+								.observeOn(AndroidSchedulers.mainThread())
+								.subscribe(new Subscriber<List<PictureTag>>() {
+									@Override
+									public void onCompleted() {
+
+									}
+
+									@Override
+									public void onError(Throwable e) {
+										Timber.e(e, e.getMessage());
+									}
+
+									@Override
+									public void onNext(List<PictureTag> tagNames) {
+										StringBuilder builder = new StringBuilder();
+										for (int i = 0; i < tagNames.size(); i++) {
+
+											if (i < Constants.TAG_MERGER.MAX_PICTAG_SIZE -1) {
+												builder.append(tagNames.get(i).tagName).append(", ");
+											}else if(i == Constants.TAG_MERGER.MAX_PICTAG_SIZE - 1){
+												builder.append(tagNames.get(i).tagName);
+											}
+										}
+
+										if(getActivity() != null) {
+											mProgressContainer.setVisibility(View.GONE);
+											String newLinedTags = builder.toString().replace(", ", "<br/>");
+											tagTextView.setText(Html.fromHtml(newLinedTags));
+											tagTextView.setContentDescription(builder.toString());
+
+											TalkActivity talkActivity = (TalkActivity) getActivity();
+											talkActivity.talkBack("There is "+builder.toString());
+										}
+									}
+								});
+
+					}
+				});
+			}
+		});
+
+	}
+
+
 }
