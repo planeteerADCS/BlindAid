@@ -98,7 +98,7 @@ public class ImageTaggingTasks {
                             clarifai.recognize(new RecognitionRequest(imageUrl));
 
                     for (Tag tag : results.get(0).getTags()) {
-                        tags.add(new PictureTag(tag.getName(), tag.getProbability()));
+                        tags.add(new PictureTag(tag.getName(), tag.getProbability()*100));
                     }
                 }catch (ClarifaiException e){
                     Timber.e(e, e.getMessage());
