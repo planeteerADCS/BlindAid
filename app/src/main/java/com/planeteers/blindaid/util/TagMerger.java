@@ -6,6 +6,7 @@ import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.models.PictureTag;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,6 +27,8 @@ public class TagMerger {
 
         normalizeList(list1);
         normalizeList(list2);
+
+
 
         HashMap<String, Double> pictureMap = new HashMap<>();
 
@@ -57,10 +60,17 @@ public class TagMerger {
 
 
     private static void evaluateKey(HashMap<String, Double> map, String tag, Double confidence) {
-        if (map.containsKey(tag)) {
-            Double oldConfidence = map.get(tag);
-            map.put(tag, oldConfidence + confidence);
-        } else { map.put(tag, confidence); }
+
+        List<String> bannedTags = new ArrayList<String>(Arrays.asList("politics", "business", "finance"));
+
+        if (!bannedTags.contains(tag)) {
+            if (map.containsKey(tag)) {
+                Double oldConfidence = map.get(tag);
+                map.put(tag, oldConfidence + confidence);
+            } else {
+                map.put(tag, confidence);
+            }
+        }
     }
 
     private static void logPictureTagList(List<PictureTag> list) {
