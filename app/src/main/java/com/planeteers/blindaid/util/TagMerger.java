@@ -16,7 +16,7 @@ import timber.log.Timber;
 public class TagMerger {
 
     public interface Callback {
-        public void onComplete(List<String> tagResults);
+        public void onComplete(List<PictureTag> tagResults);
     }
 
 
