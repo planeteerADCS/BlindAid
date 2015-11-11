@@ -35,6 +35,7 @@ import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
 import com.planeteers.blindaid.services.ClarifaiService;
+import com.planeteers.blindaid.services.ImaggaService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -65,7 +66,13 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
+            List<String> tags = null;
+            if (intent.hasExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY)) {
+                tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
+            } else if (intent.hasExtra(Constants.KEY.IMAGGA_TAG_LIST_KEY)) {
+                tags = intent.getStringArrayListExtra(Constants.KEY.IMAGGA_TAG_LIST_KEY);
+            }
+
             ArrayList<String> tagNames = new ArrayList<>();
             ArrayList<Double> tagProbs = new ArrayList<>();
 
@@ -196,17 +203,18 @@ public class MainActivity extends AppCompatActivity {
                             public void done(ParseObject parseObject, ParseException e) {
                                 String imageUrl = parseObject.getParseFile("image").getUrl();
                                 Log.v("image url:", imageUrl);
+
+                                getApplicationContext().startService(getServiceIntent(Constants.ACTION.START_IMAGGA_ACTION).setData(
+                                        Uri.parse(imageUrl)
+                                ));
+
+//                                getApplicationContext().startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
+//                                        Uri.parse(imageUrl)
+//                                ));
                             }
                         });
-
-
                     }
                 });
-
-
-                this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
-                        Uri.parse(fullPath)
-                ));
             }
         }
     }
@@ -239,8 +247,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Intent getServiceIntent(String action) {
-        Intent serviceIntent = new Intent(this, ClarifaiService.class);
-        serviceIntent.setAction(action);
+        Intent serviceIntent = null;
+
+        switch (action) {
+            case Constants.ACTION.START_CLARIFAI_ACTION:
+//                serviceIntent = new Intent(this, ClarifaiService.class);
+//                serviceIntent.setAction(action);
+                break;
+            case Constants.ACTION.START_IMAGGA_ACTION:
+                serviceIntent = new Intent(this, ImaggaService.class);
+                serviceIntent.setAction(action);
+                break;
+        }
         return serviceIntent;
     }
 

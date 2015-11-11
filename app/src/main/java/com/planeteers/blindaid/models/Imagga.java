@@ -25,25 +25,28 @@ public class Imagga {
         this.tagName = tagName;
         this.confidence = confidence;
     }
-    public static class ImaggaDeserializer implements JsonDeserializer<List<Imagga>> {
+    public static class ImaggaDeserializer implements JsonDeserializer<List> {
 
         @Override
         public List<Imagga> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject object = json.getAsJsonObject();
-            JsonArray array = object.getAsJsonArray();
             List<Imagga> imaggaList = new ArrayList<>();
 
-            for (JsonElement element : array) {
-                JsonObject image = element.getAsJsonObject();
-                JsonArray tags = image.get(Constants.IMAGGA.TAGS_KEY).getAsJsonArray();
+            if (object.has("results")) {
+                JsonArray array = object.get("results").getAsJsonArray();
 
-                for (JsonElement tagElement : tags) {
-                    JsonObject tag = tagElement.getAsJsonObject();
+                for (JsonElement element : array) {
+                    JsonObject image = element.getAsJsonObject();
+                    JsonArray tags = image.get(Constants.IMAGGA.TAGS_KEY).getAsJsonArray();
 
-                    if (tag.has(Constants.IMAGGA.CONFIDENCE_KEY) && tag.has(Constants.IMAGGA.TAG_KEY)) {
-                        Double confidence = tag.get(Constants.IMAGGA.CONFIDENCE_KEY).getAsDouble();
-                        String tagName = tag.get(Constants.IMAGGA.TAG_KEY).getAsString();
-                        imaggaList.add(new Imagga(tagName, confidence));
+                    for (JsonElement tagElement : tags) {
+                        JsonObject tag = tagElement.getAsJsonObject();
+
+                        if (tag.has(Constants.IMAGGA.CONFIDENCE_KEY) && tag.has(Constants.IMAGGA.TAG_KEY)) {
+                            Double confidence = tag.get(Constants.IMAGGA.CONFIDENCE_KEY).getAsDouble();
+                            String tagName = tag.get(Constants.IMAGGA.TAG_KEY).getAsString();
+                            imaggaList.add(new Imagga(tagName, confidence));
+                        }
                     }
                 }
             }

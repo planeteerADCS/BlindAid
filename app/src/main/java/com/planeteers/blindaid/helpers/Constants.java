@@ -8,6 +8,7 @@ public class Constants {
 
     public interface ACTION {
         String START_CLARIFAI_ACTION = "start_clarifai";
+        String START_IMAGGA_ACTION = "start_imagga";
     }
 
     public interface KEY {
@@ -21,8 +22,8 @@ public class Constants {
     }
 
     public interface IMAGGA {
-        String AUTHORIZATION = "Basic: YWNjXzM0MmI2NjBiNWVlODcwMzpiNjhkM2MzM2E5NjkxMzA4MWM4NjlkNmU0YmU4YjAyZg==";
-        String API_URL = "http://api.imagga.com";
+        String AUTHORIZATION = "Basic YWNjXzM0MmI2NjBiNWVlODcwMzpiNjhkM2MzM2E5NjkxMzA4MWM4NjlkNmU0YmU4YjAyZg==";
+        String API_URL = "http://api.imagga.com/";
         String TAGS_KEY = "tags";
         String TAG_KEY = "tag";
         String CONFIDENCE_KEY = "confidence";
