@@ -8,7 +8,6 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Vibrator;
-import android.support.v7.app.AppCompatActivity;
 import android.text.Html;
 import android.widget.TextView;
 
@@ -39,6 +38,7 @@ import timber.log.Timber;
  * Created by flavius on 11/10/15.
  */
 public class ObstacleDetection extends TalkActivity implements CameraBridgeViewBase.CvCameraViewListener2, Orientation.Listener {
+    public final static String INSTRUCTIONS = "Swipe down to go back.";
     private static final String TAG = "ObstacleDetection";
     private static final Scalar CONTOUR_COLOR = new Scalar(255, 0, 0, 255);
     private static final int DELAY_NORMAL = 2000;
@@ -49,10 +49,8 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
     private static final int TONE_HIGH = 8;
     private static final int TONE_HIGHER = 6;
     private static final int MIN_ROTATE_DOWN_MESSAGE_DELAY = 3000;
-
-    public final static String INSTRUCTIONS = "Swipe down to go back.";
-
-
+    @Bind(R.id.tag_textview)
+    TextView tagTextView;
     private JavaCameraView mCameraView;
     private Mat mGray;
     private Mat mColor;
@@ -87,9 +85,6 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
     };
     private int mDelay;
     private long mLastRotateDownMessage;
-
-    @Bind(R.id.tag_textview)
-    TextView tagTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -264,7 +259,7 @@ public class ObstacleDetection extends TalkActivity implements CameraBridgeViewB
                 mDelay = DELAY_NORMAL;
             } else {
                 tone = TONE_NORMAL;
-                mDelay = (int)Math.abs(pitch) * 15;
+                mDelay = (int) Math.abs(pitch) * 15;
                 Timber.d("Delay", "" + mDelay);
                 mDelay = Math.max(DELAY_FASTEST, mDelay);
             }
