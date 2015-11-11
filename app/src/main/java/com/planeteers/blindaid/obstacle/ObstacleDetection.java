@@ -11,6 +11,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import com.planeteers.blindaid.R;
+import com.planeteers.blindaid.base.TalkActivity;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -30,15 +31,17 @@ import java.util.List;
 /**
  * Created by flavius on 11/10/15.
  */
-public class ObstacleDetection extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, Orientation.Listener {
+public class ObstacleDetection extends TalkActivity implements CameraBridgeViewBase.CvCameraViewListener2, Orientation.Listener {
     private static final String TAG = "ObstacleDetection";
     private static final Scalar CONTOUR_COLOR = new Scalar(255, 0, 0, 255);
     private static final int DELAY_NORMAL = 2000;
     private static final int DELAY_FAST = 800;
     private static final int DELAY_FASTER = 400;
+    private static final int DELAY_FASTEST = 260;
     private static final int TONE_NORMAL = 10;
     private static final int TONE_HIGH = 8;
     private static final int TONE_HIGHER = 6;
+    private static final int MIN_ROTATE_DOWN_MESSAGE_DELAY = 3000;
 
 
     private JavaCameraView mCameraView;
@@ -74,6 +77,7 @@ public class ObstacleDetection extends AppCompatActivity implements CameraBridge
         }
     };
     private int mDelay;
+    private long mLastRotateDownMessage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,12 +97,13 @@ public class ObstacleDetection extends AppCompatActivity implements CameraBridge
         super.onResume();
         OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         mLastTimestamp = System.currentTimeMillis();
+        mLastRotateDownMessage = System.currentTimeMillis();
         mOrientation.startListening(this);
         mDelay = DELAY_NORMAL;
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         mOrientation.stopListening();
     }
@@ -184,7 +189,7 @@ public class ObstacleDetection extends AppCompatActivity implements CameraBridge
     @Override
     public void onOrientationChanged(float pitch, float roll) {
         Log.d("Orient", "pitch: " + pitch + "   roll: " + roll);
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
 
         if (now - mLastTimestamp > mDelay) {
             mLastTimestamp = now;
@@ -195,9 +200,16 @@ public class ObstacleDetection extends AppCompatActivity implements CameraBridge
                 mDelay = DELAY_NORMAL;
             } else {
                 tone = TONE_NORMAL;
-                mDelay = (int)Math.abs(pitch) * 20;
+                mDelay = (int)Math.abs(pitch) * 15;
                 Log.d("Delay", "" + mDelay);
-                mDelay = Math.max(DELAY_FASTER, mDelay);
+                mDelay = Math.max(DELAY_FASTEST, mDelay);
+            }
+
+            if (pitch > -30) {
+                if (now - mLastRotateDownMessage > MIN_ROTATE_DOWN_MESSAGE_DELAY) {
+                    talkBack("Rotate device downward");
+                    mLastRotateDownMessage = now;
+                }
             }
             mToneGenerator.startTone(tone, duration);
         }
