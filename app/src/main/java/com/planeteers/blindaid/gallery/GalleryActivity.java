@@ -32,7 +32,6 @@ import android.widget.FrameLayout;
 import com.planeteers.blindaid.R;
 import com.planeteers.blindaid.base.TalkActivity;
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
 import com.planeteers.blindaid.view.BlindViewUtil;
 
 import java.io.File;
@@ -228,9 +227,7 @@ public class GalleryActivity extends TalkActivity {
                 public void onPageSelected(int position) {
                     String imageUrl = imageArray.get(position);
 
-                    startService(TalkActivity.getServiceIntent(GalleryActivity.this,
-                            Constants.ACTION.START_CLARIFAI_ACTION).setData(Uri.parse(imageUrl)
-                    ));
+                    //TODO: Call for tags for the first item
                 }
 
                 @Override

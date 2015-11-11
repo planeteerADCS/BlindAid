@@ -19,7 +19,7 @@ public class TagMerger {
         public void onComplete(List<PictureTag> tagResults);
     }
 
-    public List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2) {
+    public static List<PictureTag> mergeTags(List<PictureTag> list1, List<PictureTag> list2) {
 
         logPictureTagList(list1);
         logPictureTagList(list2);
@@ -46,7 +46,7 @@ public class TagMerger {
         Collections.sort(mergedList, new Comparator<PictureTag>() {
             @Override
             public int compare(PictureTag lhs, PictureTag rhs) {
-                if (lhs.confidence > rhs.confidence) return 1;
+                if (lhs.confidence < rhs.confidence) return 1;
                 else return -1;
             }
         });
@@ -56,18 +56,17 @@ public class TagMerger {
     }
 
 
-    private void evaluateKey(HashMap<String, Double> map, String tag, Double confidence) {
+    private static void evaluateKey(HashMap<String, Double> map, String tag, Double confidence) {
         if (map.containsKey(tag)) {
             Double oldConfidence = map.get(tag);
             map.put(tag, oldConfidence + confidence);
         } else { map.put(tag, confidence); }
     }
 
-    private void logPictureTagList(List<PictureTag> list) {
+    private static void logPictureTagList(List<PictureTag> list) {
         Log.v("TagMerger", "Logging PicTagList...");
-        Log.v("TagMerger", "");
-        Log.v("TagMerger", "");
-
+        Log.v("TagMerger", " ");
+        Log.v("TagMerger", " ");
         for (PictureTag picTag : list) {
             Log.v("TagMerger", "TagName: " + picTag.tagName + " | " + " Confidence: " + picTag.confidence);
         }
@@ -75,11 +74,22 @@ public class TagMerger {
     }
 
 
-    private void normalizeList(List<PictureTag> pictureTags) {
+    private static void normalizeList(List<PictureTag> pictureTags) {
         double maxConfidence = pictureTags.get(0).confidence;
         for (int i = 0; i < Constants.TAG_MERGER.MAX_PICTAG_SIZE; i++) {
             if (pictureTags.get(i) == null) break;
             pictureTags.get(i).confidence = pictureTags.get(i).confidence / maxConfidence;
         }
+    }
+
+    private static List<PictureTag> convertToPictureTags(List<String> list) {
+        List<PictureTag> picTags = new ArrayList<>();
+
+        for (String tag : list) {
+            String[] tagParts = tag.split(":");
+            picTags.add(new PictureTag(tagParts[0], Double.parseDouble(tagParts[1])));
+        }
+
+        return picTags;
     }
 }

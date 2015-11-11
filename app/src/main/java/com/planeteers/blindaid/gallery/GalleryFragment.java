@@ -25,7 +25,6 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.target.Target;
 import com.planeteers.blindaid.R;
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.io.File;
 import java.text.NumberFormat;

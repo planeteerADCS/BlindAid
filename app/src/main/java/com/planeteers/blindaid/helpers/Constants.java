@@ -12,7 +12,7 @@ public class Constants {
     }
 
     public interface TAG_MERGER {
-        int MAX_PICTAG_SIZE = 5;
+        int MAX_PICTAG_SIZE = 7;
     }
 
     public interface ACTION {
