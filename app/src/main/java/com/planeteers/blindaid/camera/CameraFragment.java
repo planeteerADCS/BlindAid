@@ -1,5 +1,7 @@
 package com.planeteers.blindaid.camera;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
@@ -11,13 +13,21 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
+import android.media.ExifInterface;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v13.app.FragmentCompat;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.OrientationEventListener;
 import android.view.SurfaceHolder;
@@ -27,12 +37,27 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.parse.GetCallback;
+import com.parse.ParseException;
+import com.parse.ParseFile;
+import com.parse.ParseObject;
+import com.parse.ParseQuery;
+import com.parse.SaveCallback;
 import com.planeteers.blindaid.R;
+import com.planeteers.blindaid.base.TalkActivity;
+import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.models.PictureTag;
+import com.planeteers.blindaid.tasks.ImageTaggingTasks;
 import com.planeteers.blindaid.util.PermissionUtil;
+import com.planeteers.blindaid.util.TagMerger;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
 import timber.log.Timber;
 
 
@@ -68,6 +93,13 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 		}
 	}
 
+	private Handler autoShutterHandler = new Handler(){
+		@Override
+		public void dispatchMessage(Message msg) {
+			super.dispatchMessage(msg);
+		}
+	};
+
 	private static int cameraId = 0;
 
 	private Camera.PictureCallback mJpegCallback = new Camera.PictureCallback() {
@@ -91,17 +123,12 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 					success = false;
 				}
 			}
-			
+
 			if (success) {
 //				Timber.i(TAG, "JPEG saved at " + filename);
-				Intent i = new Intent();
-				i.putExtra(EXTRA_PHOTO_FILENAME, filename);
-				i.putExtra(EXTRA_PHOTO_ORIENTATION, mOrientation);
-				getActivity().setResult(Activity.RESULT_OK, i);
-			} else {
-				getActivity().setResult(Activity.RESULT_CANCELED);
+				processImage(filename);
+				mCamera.startPreview();
 			}
-			getActivity().finish();
 		}
 	};
 	
@@ -334,5 +361,124 @@ public class CameraFragment extends Fragment implements FragmentCompat.OnRequest
 			}else {
 				super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 			}
+	}
+
+	public void processImage(String fileName){
+		String fullPath = getActivity().getFilesDir() + "/" + fileName;
+		Log.d("Camera", "wrote file to: " + fileName);
+
+		File image = new File(fullPath);
+		BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+		Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
+
+		ExifInterface exif= null;
+		try {
+			exif = new ExifInterface(image.toString());
+
+			Log.d("EXIF value: %s", exif.getAttribute(ExifInterface.TAG_ORIENTATION));
+			if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("6")){
+				bitmap = rotate(bitmap, 90);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("8")){
+				bitmap = rotate(bitmap, 270);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("3")){
+				bitmap = rotate(bitmap, 180);
+			} else if(exif.getAttribute(ExifInterface.TAG_ORIENTATION).equalsIgnoreCase("0")){
+				bitmap = rotate(bitmap, 90);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// display image taken
+		BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
+		//mPreviewImage.setImageDrawable(bitmapDrawable);
+
+
+		// compress image
+		final ParseObject imageParseObject = new ParseObject("Image");
+
+		ByteArrayOutputStream stream = new ByteArrayOutputStream();
+		bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+		byte[] imageData = stream.toByteArray();
+		ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
+
+		// save compressed image for upload
+		imageParseObject.put("image", imageParseFile);
+		imageParseObject.saveInBackground(new SaveCallback() {
+			@Override
+			public void done(ParseException e) {
+				String imageObjectId = imageParseObject.getObjectId();
+				Timber.d("imageObjectID: %s", imageObjectId);
+				ParseQuery<ParseObject> query = ParseQuery.getQuery("Image");
+
+				query.getInBackground(imageObjectId, new GetCallback<ParseObject>() {
+					@Override
+					public void done(ParseObject parseObject, ParseException e) {
+						if(e != null){
+							Timber.e(e, e.getMessage());
+							return;
+						}
+
+						String imageUrl = parseObject.getParseFile("image").getUrl();
+						Log.v("image url:", imageUrl);
+
+
+						Observable.zip(
+								ImageTaggingTasks.getClarifaiTags(imageUrl),
+								ImageTaggingTasks.getImaggaTags(imageUrl),
+								new Func2<List<PictureTag>, List<PictureTag>, List<PictureTag>>() {
+									@Override
+									public List<PictureTag> call(List<PictureTag> clarifai, List<PictureTag> imaggas) {
+										return TagMerger.mergeTags(clarifai, imaggas);
+									}
+								}
+						)
+								.observeOn(AndroidSchedulers.mainThread())
+								.subscribe(new Subscriber<List<PictureTag>>() {
+									@Override
+									public void onCompleted() {
+
+									}
+
+									@Override
+									public void onError(Throwable e) {
+										Timber.e(e, e.getMessage());
+									}
+
+									@Override
+									public void onNext(List<PictureTag> tagNames) {
+										StringBuilder builder = new StringBuilder();
+										for (int i = 0; i < tagNames.size(); i++) {
+
+											if (i < Constants.TAG_MERGER.MAX_PICTAG_SIZE) {
+												builder.append(tagNames.get(i).tagName).append(", ");
+											}
+										}
+
+										if(getActivity() != null) {
+											mProgressContainer.setVisibility(View.GONE);
+
+											TalkActivity talkActivity = (TalkActivity) getActivity();
+											talkActivity.talkBack(builder.toString());
+										}
+									}
+								});
+
+					}
+				});
+			}
+		});
+
+	}
+
+	public static Bitmap rotate(Bitmap bitmap, int degree) {
+		int w = bitmap.getWidth();
+		int h = bitmap.getHeight();
+
+		Matrix mtx = new Matrix();
+		mtx.postRotate(degree);
+
+		return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
 	}
 }

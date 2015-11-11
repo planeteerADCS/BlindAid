@@ -7,7 +7,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,17 +30,19 @@ import com.parse.ParseFile;
 import com.parse.ParseObject;
 import com.parse.ParseQuery;
 import com.parse.SaveCallback;
+import com.planeteers.blindaid.base.TalkActivity;
 import com.planeteers.blindaid.camera.CameraActivity;
 import com.planeteers.blindaid.camera.CameraFragment;
 import com.planeteers.blindaid.gallery.GalleryActivity;
 import com.planeteers.blindaid.helpers.Constants;
+import com.planeteers.blindaid.models.PictureTag;
 import com.planeteers.blindaid.obstacle.ObstacleDetection;
 import com.planeteers.blindaid.recognition.FaceDetectActivity;
-import com.planeteers.blindaid.services.ClarifaiService;
-import com.planeteers.blindaid.services.ImaggaService;
+import com.planeteers.blindaid.tasks.ImageTaggingTasks;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,9 +50,13 @@ import java.util.List;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import rx.Observable;
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
 import timber.log.Timber;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends TalkActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
 
     static{ System.loadLibrary("opencv_java3"); }
@@ -62,31 +70,6 @@ public class MainActivity extends AppCompatActivity {
     private TextToSpeech mTts;
 
     Context mContext;
-
-    // tags & probability returned from Clarifai API
-    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            List<String> tags = null;
-            if (intent.hasExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY)) {
-                tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
-            } else if (intent.hasExtra(Constants.KEY.IMAGGA_TAG_LIST_KEY)) {
-                tags = intent.getStringArrayListExtra(Constants.KEY.IMAGGA_TAG_LIST_KEY);
-            }
-
-            ArrayList<String> tagNames = new ArrayList<>();
-            ArrayList<Double> tagProbs = new ArrayList<>();
-
-            for (String tag : tags) {
-                String[] tagParts = tag.split(":");
-                tagNames.add(tagParts[0]);
-                tagProbs.add(Double.parseDouble(tagParts[1]));
-            }
-
-            // now say tags and certainty factor out loud
-            talkBack(tagNames, tagProbs);
-        }
-    };
 
     // launch camera
     @OnClick(R.id.cameraFeedButton)
@@ -120,27 +103,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
 
         mContext = this;
 
         ButterKnife.bind(this);
-    }
-
-    @Override
-    public void onPause() {
-        // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
-        super.onPause();
-    }
-
-    @Override
-    public void onResume() {
-        // Reregister since the activity is visible
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
-        super.onResume();
     }
 
     @Override
@@ -149,105 +115,5 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.unbind(this);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        // show and save image taken from camera
-        if (requestCode == REQUEST_CODE_CAMERA) {
-            if (resultCode == RESULT_OK) {
-                String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
-                String fullPath = getFilesDir() + "/" + path;
-                Log.d("Camera", "wrote file to: " + path);
-
-                File image = new File(fullPath);
-                BitmapFactory.Options bmOptions = new BitmapFactory.Options();
-                Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
-
-                // display image taken
-                BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
-                mPreviewImage.setImageDrawable(bitmapDrawable);
-
-                // compress image
-                final ParseObject imageParseObject = new ParseObject("Image");
-
-                ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                byte[] imageData = stream.toByteArray();
-                ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
-
-                // save compressed image to filesystem
-                imageParseObject.put("image", imageParseFile);
-                imageParseObject.saveInBackground(new SaveCallback() {
-                    @Override
-                    public void done(ParseException e) {
-                        String imageObjectId = imageParseObject.getObjectId();
-                        Log.v("imageObjectID", imageObjectId);
-                        ParseQuery query = ParseQuery.getQuery("Image");
-
-                        query.getInBackground(imageObjectId, new GetCallback<ParseObject>() {
-                            @Override
-                            public void done(ParseObject parseObject, ParseException e) {
-                                String imageUrl = parseObject.getParseFile("image").getUrl();
-                                Log.v("image url:", imageUrl);
-
-                                getApplicationContext().startService(getServiceIntent(Constants.ACTION.START_IMAGGA_ACTION).setData(
-                                        Uri.parse(imageUrl)
-                                ));
-
-//                                getApplicationContext().startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
-//                                        Uri.parse(imageUrl)
-//                                ));
-                            }
-                        });
-                    }
-                });
-            }
-        }
-    }
-
-
-    // TalkBack to announce tag and certainty factor (percentage)
-    private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
-        mTts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-            @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-            @Override
-            public void onInit(int status) {
-                if (status == TextToSpeech.ERROR) {
-                    Timber.e("error", TextToSpeech.ERROR);
-                } else {
-                    String speakString = "";
-                    for (int i = 0; i < tagNames.size(); i++) {
-                        if (i < 10)speakString += "In view " + tagNames.get(i) + " Certainty " + toPercentage(tagProbs.get(i)) + ". ";
-                    }
-                    mTts.speak(speakString, 0, null, null);
-                }
-            }
-        });
-    }
-
-    private String toPercentage(double number) {
-        float percent = (float) number;
-        NumberFormat defaultFormat = NumberFormat.getPercentInstance();
-        defaultFormat.setMaximumFractionDigits(0);
-
-        return  defaultFormat.format(percent);
-    }
-
-    private Intent getServiceIntent(String action) {
-        Intent serviceIntent = null;
-
-        switch (action) {
-            case Constants.ACTION.START_CLARIFAI_ACTION:
-//                serviceIntent = new Intent(this, ClarifaiService.class);
-//                serviceIntent.setAction(action);
-                break;
-            case Constants.ACTION.START_IMAGGA_ACTION:
-                serviceIntent = new Intent(this, ImaggaService.class);
-                serviceIntent.setAction(action);
-                break;
-        }
-        return serviceIntent;
-    }
 
 }

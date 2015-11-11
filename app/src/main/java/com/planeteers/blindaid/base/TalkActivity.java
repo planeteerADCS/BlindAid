@@ -11,7 +11,6 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 
 import com.planeteers.blindaid.helpers.Constants;
-import com.planeteers.blindaid.services.ClarifaiService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,28 +28,6 @@ public class TalkActivity extends AppCompatActivity{
 
     private TagsRetrievedListener tagsRetrievedListener;
 
-    // parse the string into tags and certainty factors
-    private BroadcastReceiver mTrackDataReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            List<String> tags = intent.getStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY);
-            ArrayList<String> tagNames = new ArrayList<>();
-            ArrayList<Double> tagProbs = new ArrayList<>();
-
-            for (String tag : tags) {
-                String[] tagParts = tag.split(":");
-                tagNames.add(tagParts[0]);
-                tagProbs.add(Double.parseDouble(tagParts[1]));
-            }
-
-            if(tagsRetrievedListener != null){
-                tagsRetrievedListener.onTagsRetrieved(tagNames, tagProbs);
-            }else{
-                Timber.e("There is no TagsRetrievedListener set.");
-            }
-        }
-    };
-
     /**
      * Callback interface to be used when retrieving tags from an image
      */
@@ -62,8 +39,6 @@ public class TalkActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
     }
 
     @Override
@@ -82,7 +57,6 @@ public class TalkActivity extends AppCompatActivity{
     @Override
     public void onPause() {
         // Unregister since the activity is not visible
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
         super.onPause();
     }
 
@@ -98,16 +72,9 @@ public class TalkActivity extends AppCompatActivity{
     @Override
     public void onResume() {
         // Reregister since the activity is visible
-        LocalBroadcastManager.getInstance(this).registerReceiver(mTrackDataReceiver,
-                new IntentFilter(Constants.FILTER.RECEIVER_INTENT_FILTER));
         super.onResume();
     }
 
-    public static Intent getServiceIntent(Context context, String action) {
-        Intent serviceIntent = new Intent(context, ClarifaiService.class);
-        serviceIntent.setAction(action);
-        return serviceIntent;
-    }
 
     // say it out loud
     public void talkBack(String message) {

@@ -33,16 +33,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".camera.CameraActivity"
-            android:screenOrientation="portrait" />
+            android:screenOrientation="portrait"
+            android:theme="@style/FullScreenTheme"/>
 
         <activity android:name=".obstacle.ObstacleDetection"/>
 
-        <service
-            android:name=".services.ClarifaiService"
-            android:exported="false" >
-        </service>
 
         <activity
             android:name=".recognition.FaceDetectActivity"
@@ -56,10 +54,6 @@
             android:theme="@style/FullScreenTheme" >
         </activity>
 
-        <service
-            android:name=".services.ImaggaService"
-            android:exported="false" >
-        </service>
     </application>
 
 </manifest>
