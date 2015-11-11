@@ -75,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
                 tagNames.add(tagParts[0]);
                 tagProbs.add(Double.parseDouble(tagParts[1]));
             }
-
             // now say tags and certainty factor out loud
             talkBack(tagNames, tagProbs);
         }
@@ -88,21 +87,18 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(i, REQUEST_CODE_CAMERA);
     }
 
-    //
     @OnClick(R.id.faceDetectButton)
     public void onFaceDetectButtonClicked(View v) {
         Intent i = new Intent(this, FaceDetectActivity.class);
         startActivity(i);
     }
 
-    //
     @OnClick(R.id.openCvButton)
     public void onOpenCvButtonClicked(View v) {
         Intent i = new Intent(this, ObstacleDetection.class);
         startActivity(i);
     }
 
-    //
     @OnClick(R.id.galleryButton)
     public void onGalleryButtonClicked(View v){
         Intent i = new Intent(this, GalleryActivity.class);
@@ -142,22 +138,21 @@ public class MainActivity extends AppCompatActivity {
         ButterKnife.unbind(this);
     }
 
+    // show and save image taken from camera
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        // show and save image taken from camera
         if (requestCode == REQUEST_CODE_CAMERA) {
             if (resultCode == RESULT_OK) {
                 String path = data.getStringExtra(CameraFragment.EXTRA_PHOTO_FILENAME);
                 String fullPath = getFilesDir() + "/" + path;
                 Log.d("Camera", "wrote file to: " + path);
 
+                // display image taken
                 File image = new File(fullPath);
                 BitmapFactory.Options bmOptions = new BitmapFactory.Options();
                 Bitmap bitmap = BitmapFactory.decodeFile(image.getAbsolutePath(), bmOptions);
 
-                // display image taken
                 BitmapDrawable bitmapDrawable = new BitmapDrawable(getResources(), bitmap);
                 mPreviewImage.setImageDrawable(bitmapDrawable);
 
@@ -169,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 byte[] imageData = stream.toByteArray();
                 ParseFile imageParseFile = new ParseFile("image.jpeg", imageData);
 
-                // save compressed image to filesystem
+                // prep compressed image to Clarifai
                 imageParseObject.put("image", imageParseFile);
                 imageParseObject.saveInBackground(new SaveCallback() {
                     @Override
@@ -188,13 +183,13 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+
                 this.startService(getServiceIntent(Constants.ACTION.START_CLARIFAI_ACTION).setData(
                         Uri.parse(fullPath)
                 ));
             }
         }
     }
-
 
     // TalkBack to announce tag and certainty factor (percentage)
     private void talkBack(final List<String> tagNames, final List<Double> tagProbs) {
@@ -221,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
         defaultFormat.setMaximumFractionDigits(0);
 
         return  defaultFormat.format(percent);
+
     }
 
     private Intent getServiceIntent(String action) {
@@ -228,5 +224,6 @@ public class MainActivity extends AppCompatActivity {
         serviceIntent.setAction(action);
         return serviceIntent;
     }
+
 
 }
