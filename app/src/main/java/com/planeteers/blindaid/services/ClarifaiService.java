@@ -11,14 +11,10 @@ import com.clarifai.api.Tag;
 import com.planeteers.blindaid.helpers.Constants;
 
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ClarifaiService extends IntentService {
-
-    private static final String APP_ID = "nOVRTkdFjshLLibO-vu5IxHi-vb0NU-u9jVxQLZ7";
-    private static final String APP_SECRET = "eJeVpqilheUoEkow61tyZoW1HOihVbw1TjhXJlFa";
 
     public ClarifaiService() {
         super("ClarifaiService");
@@ -28,7 +24,7 @@ public class ClarifaiService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
 
-            ClarifaiClient clarifai = new ClarifaiClient(APP_ID, APP_SECRET);
+            ClarifaiClient clarifai = new ClarifaiClient(Constants.CLARIFAI.APP_ID, Constants.CLARIFAI.APP_SECRET);
             List<RecognitionResult> results =
                     clarifai.recognize(new RecognitionRequest(new File(intent.getData().toString())));
 
@@ -44,7 +40,7 @@ public class ClarifaiService extends IntentService {
 
     private void sendDataToReceivers(ArrayList<String> tags) {
         Intent intent = new Intent(Constants.FILTER.RECEIVER_INTENT_FILTER);
-        intent.putStringArrayListExtra(Constants.KEY.TAG_LIST_KEY, tags);
+        intent.putStringArrayListExtra(Constants.KEY.CLARIFAI_TAG_LIST_KEY, tags);
 
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }

@@ -55,6 +55,11 @@
             android:label="@string/title_activity_gallery"
             android:theme="@style/FullScreenTheme" >
         </activity>
+
+        <service
+            android:name=".services.ImaggaService"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>
