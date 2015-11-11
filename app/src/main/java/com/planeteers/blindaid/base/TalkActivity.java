@@ -83,11 +83,16 @@ public class TalkActivity extends AppCompatActivity{
     public void onPause() {
         // Unregister since the activity is not visible
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mTrackDataReceiver);
-
-        if(mTts != null && mTts.isSpeaking()){
-            mTts.stop();
-        }
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(mTts != null){
+            mTts.stop();
+            mTts.shutdown();
+        }
+        super.onDestroy();
     }
 
     @Override

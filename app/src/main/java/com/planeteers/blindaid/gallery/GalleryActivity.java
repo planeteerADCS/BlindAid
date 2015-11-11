@@ -27,11 +27,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 
 import com.planeteers.blindaid.R;
 import com.planeteers.blindaid.base.TalkActivity;
 import com.planeteers.blindaid.helpers.Constants;
 import com.planeteers.blindaid.services.ClarifaiService;
+import com.planeteers.blindaid.view.BlindViewUtil;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -69,6 +71,9 @@ public class GalleryActivity extends TalkActivity {
     @Bind(R.id.gallery_view_pager)
     ViewPager viewPager;
 
+    @Bind(R.id.gallery_blind_nav_view)
+    FrameLayout blindNavView;
+
     private boolean mVisible;
 
 
@@ -91,12 +96,7 @@ public class GalleryActivity extends TalkActivity {
                 for (int i = 0; i < tagNames.size(); i++) {
 
                     if (i < 7){
-                        if(i == 0){
-                            builder.append("There is ");
-                        }else{
-                            builder.append(" there's also ");
-                        }
-                        builder.append(tagNames.get(i));
+                        builder.append(tagNames.get(i)).append(", ");
                     }
                 }
 
@@ -107,6 +107,55 @@ public class GalleryActivity extends TalkActivity {
         ImageAsyncTask imageAsyncTask = new ImageAsyncTask(getApplication());
         imageAsyncTask.execute();
 
+    }
+
+    @Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+
+        BlindViewUtil blindViewUtil = new BlindViewUtil(new BlindViewUtil.BlindNavGestureListener() {
+            @Override
+            public boolean onSwipeLeft() {
+                Timber.d("OnSwipeLeft Called");
+
+                int currentItem = viewPager.getCurrentItem();
+                if (currentItem != 0) {
+                    viewPager.setCurrentItem(currentItem - 1);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeRight() {
+                Timber.d("OnSwipeRight Called");
+                int currentItem = viewPager.getCurrentItem();
+                if (mGalleryPagerAdapter.getCount() > currentItem) {
+                    viewPager.setCurrentItem(currentItem + 1);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeUp() {
+                Timber.d("OnSwipeUp Called");
+                return false;
+            }
+
+            @Override
+            public boolean onSwipeDown() {
+                Timber.d("OnSwipeDown Called");
+                finish();
+                return false;
+            }
+
+            @Override
+            public boolean onClick() {
+                Timber.d("OnClick Called");
+                return false;
+            }
+        });
+
+        blindNavView.setOnTouchListener(blindViewUtil.blindTouchListener);
     }
 
     private class GalleryPagerAdapter extends FragmentStatePagerAdapter{
