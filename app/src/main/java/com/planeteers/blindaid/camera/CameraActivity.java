@@ -1,6 +1,7 @@
 package com.planeteers.blindaid.camera;
 
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.view.Window;
@@ -32,7 +33,23 @@ public class CameraActivity extends TalkActivity {
 
 	}
 
-	protected Fragment createFragment() {
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        Handler handler = new Handler();
+
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                talkBack(CameraFragment.INSTRUCTIONS);
+
+            }
+        }, 1500);
+    }
+
+    protected Fragment createFragment() {
 		return new CameraFragment();
 	}
 

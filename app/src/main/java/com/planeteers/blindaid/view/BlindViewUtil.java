@@ -20,7 +20,7 @@ public class BlindViewUtil {
         this.gestureListener = gestureListener;
     }
 
-    private int MOVEMENT_THRESHOLD = 300;
+    private int MOVEMENT_THRESHOLD = 100;
 
     private float xDown, xCurrent;
     private float yDown, yCurrent;

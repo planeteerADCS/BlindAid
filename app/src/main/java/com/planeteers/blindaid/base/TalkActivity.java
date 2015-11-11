@@ -7,13 +7,16 @@ import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.TextView;
 
 import com.planeteers.blindaid.helpers.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import timber.log.Timber;
 
@@ -39,6 +42,7 @@ public class TalkActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+
     }
 
     @Override
@@ -49,8 +53,13 @@ public class TalkActivity extends AppCompatActivity{
             @Override
             public void onInit(int status) {
                 textToSpeechReady = status == TextToSpeech.SUCCESS;
+
+                mTts.setSpeechRate(0.85f);
             }
         });
+
+
+
 
     }
 
@@ -79,6 +88,7 @@ public class TalkActivity extends AppCompatActivity{
     // say it out loud
     public void talkBack(String message) {
         if(textToSpeechReady) {
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 mTts.speak(message, TextToSpeech.QUEUE_FLUSH, null, null);
             } else {
