@@ -43,8 +43,6 @@ import timber.log.Timber;
 public class MainActivity extends AppCompatActivity {
     public final static int REQUEST_CODE_CAMERA = 134;
 
-    static{ System.loadLibrary("opencv_java3"); }
-
     @Bind(R.id.cameraFeedButton)
     Button cameraFeedButton;
     @Bind(R.id.faceDetectButton)

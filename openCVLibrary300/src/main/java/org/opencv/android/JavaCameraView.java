@@ -158,6 +158,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
                     }
 
                     mCamera.setParameters(params);
+                    mCamera.setDisplayOrientation(90);
                     params = mCamera.getParameters();
 
                     mFrameWidth = params.getPreviewSize().width;
@@ -197,6 +198,7 @@ public class JavaCameraView extends CameraBridgeViewBase implements PreviewCallb
 
                     /* Finally we are ready to start the preview */
                     Log.d(TAG, "startPreview");
+
                     mCamera.startPreview();
                 }
                 else
